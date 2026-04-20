@@ -8,7 +8,10 @@ const router = express.Router();
 router.get('/categories', authMiddleware, async (req, res) => {
   try {
     const { rows } = await db.query(
-      'SELECT * FROM categories WHERE is_active=true ORDER BY sort_order'
+      `SELECT * FROM categories
+       WHERE is_active=true AND restaurant_id=$1
+       ORDER BY sort_order`,
+      [req.user.restaurant_id]
     );
     res.json(rows);
   } catch (err) {
@@ -20,8 +23,12 @@ router.get('/categories', authMiddleware, async (req, res) => {
 router.get('/categories/:id/items', authMiddleware, async (req, res) => {
   try {
     const { rows } = await db.query(
-      'SELECT * FROM menu_items WHERE category_id=$1 AND is_available=true ORDER BY name',
-      [req.params.id]
+      `SELECT * FROM menu_items
+       WHERE category_id=$1
+       AND is_available=true
+       AND restaurant_id=$2
+       ORDER BY name`,
+      [req.params.id, req.user.restaurant_id]
     );
     res.json(rows);
   } catch (err) {
@@ -36,7 +43,9 @@ router.get('/items', authMiddleware, async (req, res) => {
       `SELECT mi.*, c.name as category_name
        FROM menu_items mi
        JOIN categories c ON c.id = mi.category_id
-       ORDER BY c.sort_order, mi.name`
+       WHERE mi.restaurant_id=$1
+       ORDER BY c.sort_order, mi.name`,
+      [req.user.restaurant_id]
     );
     res.json(rows);
   } catch (err) {
@@ -47,12 +56,12 @@ router.get('/items', authMiddleware, async (req, res) => {
 // ── ADD CATEGORY (admin only) ─────────────────────────────────
 router.post('/categories', authMiddleware, requireRole('admin'), async (req, res) => {
   const { name, icon_url, sort_order } = req.body;
-  if (!name) return res.status(400).json({ error: 'Category name is required' });
-
+  if (!name) return res.status(400).json({ error: 'Category name required' });
   try {
     const { rows } = await db.query(
-      'INSERT INTO categories (name, icon_url, sort_order) VALUES ($1, $2, $3) RETURNING *',
-      [name, icon_url || '', sort_order || 0]
+      `INSERT INTO categories (name, icon_url, sort_order, restaurant_id)
+       VALUES ($1,$2,$3,$4) RETURNING *`,
+      [name, icon_url || '', sort_order || 0, req.user.restaurant_id]
     );
     res.status(201).json(rows[0]);
   } catch (err) {
@@ -70,8 +79,9 @@ router.put('/categories/:id', authMiddleware, requireRole('admin'), async (req, 
            icon_url=COALESCE($2,icon_url),
            sort_order=COALESCE($3,sort_order),
            is_active=COALESCE($4,is_active)
-       WHERE id=$5 RETURNING *`,
-      [name, icon_url, sort_order, is_active, req.params.id]
+       WHERE id=$5 AND restaurant_id=$6
+       RETURNING *`,
+      [name, icon_url, sort_order, is_active, req.params.id, req.user.restaurant_id]
     );
     if (!rows.length) return res.status(404).json({ error: 'Category not found' });
     res.json(rows[0]);
@@ -83,7 +93,10 @@ router.put('/categories/:id', authMiddleware, requireRole('admin'), async (req, 
 // ── DELETE CATEGORY (admin only) ──────────────────────────────
 router.delete('/categories/:id', authMiddleware, requireRole('admin'), async (req, res) => {
   try {
-    await db.query('UPDATE categories SET is_active=false WHERE id=$1', [req.params.id]);
+    await db.query(
+      'UPDATE categories SET is_active=false WHERE id=$1 AND restaurant_id=$2',
+      [req.params.id, req.user.restaurant_id]
+    );
     res.json({ message: 'Category removed' });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -94,13 +107,13 @@ router.delete('/categories/:id', authMiddleware, requireRole('admin'), async (re
 router.post('/items', authMiddleware, requireRole('admin'), async (req, res) => {
   const { category_id, name, price, image_url } = req.body;
   if (!category_id || !name || price == null)
-    return res.status(400).json({ error: 'category_id, name and price are required' });
-
+    return res.status(400).json({ error: 'category_id, name and price required' });
   try {
     const { rows } = await db.query(
-      `INSERT INTO menu_items (category_id, name, price, image_url)
-       VALUES ($1, $2, $3, $4) RETURNING *`,
-      [category_id, name, price, image_url || '']
+      `INSERT INTO menu_items
+       (category_id, name, price, image_url, restaurant_id)
+       VALUES ($1,$2,$3,$4,$5) RETURNING *`,
+      [category_id, name, price, image_url || '', req.user.restaurant_id]
     );
     res.status(201).json(rows[0]);
   } catch (err) {
@@ -119,8 +132,9 @@ router.put('/items/:id', authMiddleware, requireRole('admin'), async (req, res) 
            is_available=COALESCE($3,is_available),
            image_url=COALESCE($4,image_url),
            updated_at=NOW()
-       WHERE id=$5 RETURNING *`,
-      [name, price, is_available, image_url, req.params.id]
+       WHERE id=$5 AND restaurant_id=$6
+       RETURNING *`,
+      [name, price, is_available, image_url, req.params.id, req.user.restaurant_id]
     );
     if (!rows.length) return res.status(404).json({ error: 'Item not found' });
     res.json(rows[0]);
@@ -133,8 +147,8 @@ router.put('/items/:id', authMiddleware, requireRole('admin'), async (req, res) 
 router.delete('/items/:id', authMiddleware, requireRole('admin'), async (req, res) => {
   try {
     await db.query(
-      'UPDATE menu_items SET is_available=false WHERE id=$1',
-      [req.params.id]
+      'UPDATE menu_items SET is_available=false WHERE id=$1 AND restaurant_id=$2',
+      [req.params.id, req.user.restaurant_id]
     );
     res.json({ message: 'Item removed' });
   } catch (err) {

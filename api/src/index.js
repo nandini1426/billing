@@ -27,6 +27,7 @@ const tableRoutes = require('./routes/tables');
 const orderRoutes = require('./routes/orders');
 const analyticsRoutes = require('./routes/analytics');
 const settingsRoutes  = require('./routes/settings');
+const restaurantRoutes = require('./routes/restaurants');
 
 app.use('/api/auth',      authRoutes);
 app.use('/api/menu',      menuRoutes);
@@ -34,6 +35,7 @@ app.use('/api/tables',    tableRoutes);
 app.use('/api/orders',    orderRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/settings',  settingsRoutes);
+app.use('/api/restaurants', restaurantRoutes);
 
 // ── Health check ─────────────────────────────────────────────
 app.get('/api/health', (req, res) => {

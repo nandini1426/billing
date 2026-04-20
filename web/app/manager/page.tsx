@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import useAuthStore from "@/store/authStore";
 import api from "@/lib/api";
 import toast from "react-hot-toast";
+import LogoutButton from "@/components/LogoutButton";
 
 interface Table {
   id: string;
@@ -24,7 +25,7 @@ interface OrderItem {
 
 export default function ManagerPage() {
   const router = useRouter();
-  const { user, init, logout } = useAuthStore();
+  const { user, init } = useAuthStore();
 
   const [tables,         setTables]         = useState<Table[]>([]);
   const [selectedTable,  setSelectedTable]  = useState<Table | null>(null);
@@ -34,6 +35,7 @@ export default function ManagerPage() {
   const [orderItems,     setOrderItems]     = useState<OrderItem[]>([]);
   const [saving,         setSaving]         = useState(false);
   const [existingOrders, setExistingOrders] = useState<any[]>([]);
+  const [view,           setView]           = useState<"tables" | "order">("tables");
 
   useEffect(() => { init(); }, []);
   useEffect(() => {
@@ -85,6 +87,7 @@ export default function ManagerPage() {
   const handleTableSelect = async (table: Table) => {
     setSelectedTable(table);
     setOrderItems([]);
+
     if (table.status === "occupied") {
       const existing = existingOrders.find(o => o.table_id === table.id);
       if (existing) {
@@ -103,6 +106,7 @@ export default function ManagerPage() {
         } catch { toast.error("Failed to load existing order"); }
       }
     }
+    setView("order");
   };
 
   const addItem = (item: MenuItem) => {
@@ -149,6 +153,7 @@ export default function ManagerPage() {
       toast.success(`Order saved for ${selectedTable.label}!`);
       setOrderItems([]);
       setSelectedTable(null);
+      setView("tables");
       fetchTables();
       fetchPendingOrders();
     } catch (err: any) {
@@ -173,17 +178,29 @@ export default function ManagerPage() {
       <header className="bg-white border-b border-gray-100 shadow-sm">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => router.push("/dashboard")}
-              className="text-gray-400 hover:text-gray-600"
-            >
-              ← Back
-            </button>
+            {view === "order" ? (
+              <button
+                onClick={() => { setView("tables"); setSelectedTable(null); setOrderItems([]); }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                ← Tables
+              </button>
+            ) : (
+              <button
+                onClick={() => router.push("/dashboard")}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                ← Back
+              </button>
+            )}
             <div className="w-px h-6 bg-gray-200" />
-            <h1 className="font-bold text-gray-900 text-lg">🧑‍💼 Manager Control</h1>
+            <h1 className="font-bold text-gray-900 text-lg">
+              🧑‍💼 Manager Control
+              {selectedTable && (
+                <span className="ml-2 text-orange-500">— {selectedTable.label}</span>
+              )}
+            </h1>
           </div>
-
-          {/* Right side — refresh + user + logout */}
           <div className="flex items-center gap-3">
             <button
               onClick={() => { fetchTables(); fetchPendingOrders(); }}
@@ -191,78 +208,75 @@ export default function ManagerPage() {
             >
               🔄 Refresh
             </button>
-            <div className="text-right">
-              <p className="text-sm font-medium text-gray-900">{user.username}</p>
-              <p className="text-xs text-gray-500 capitalize">{user.role}</p>
-            </div>
-            <button
-              onClick={logout}
-              className="px-4 py-2 text-sm text-red-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition font-medium"
-            >
-              Logout
-            </button>
+            <LogoutButton />
           </div>
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-6 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* ── TABLE SELECTION VIEW ── */}
+      {view === "tables" && (
+        <main className="max-w-4xl mx-auto px-6 py-8">
+          <div className="text-center mb-6">
+            <h2 className="text-2xl font-bold text-gray-900">Select a Table</h2>
+            <p className="text-gray-500 text-sm mt-1">
+              Tap a table to start or edit an order
+            </p>
+          </div>
 
-          {/* LEFT — Tables + Categories + Items */}
-          <div className="lg:col-span-2 flex flex-col gap-4">
+          {/* Legend */}
+          <div className="flex gap-4 justify-center mb-6 text-sm text-gray-500">
+            <span className="flex items-center gap-1.5">
+              <div className="w-4 h-4 rounded bg-white border-2 border-gray-300" />
+              Available
+            </span>
+            <span className="flex items-center gap-1.5">
+              <div className="w-4 h-4 rounded bg-red-100 border-2 border-red-300" />
+              Occupied
+            </span>
+          </div>
 
-            {/* Table selection */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-md p-4">
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-sm font-semibold text-gray-700">Select Table</p>
-                <div className="flex gap-3 text-xs text-gray-400">
-                  <span className="flex items-center gap-1">
-                    <div className="w-3 h-3 bg-white border border-gray-300 rounded" />
-                    Available
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <div className="w-3 h-3 bg-orange-500 rounded" />
-                    Selected
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <div className="w-3 h-3 bg-red-100 border border-red-300 rounded" />
-                    Occupied
-                  </span>
+          <div className="grid grid-cols-5 gap-4">
+            {tables.map(table => (
+              <button
+                key={table.id}
+                onClick={() => handleTableSelect(table)}
+                className={`rounded-2xl border-2 p-6 transition-all duration-200 font-bold text-lg hover:-translate-y-1 hover:shadow-md ${getTableStyle(table)}`}
+              >
+                <div className="text-3xl mb-2">🪑</div>
+                <div>{table.label}</div>
+                <div className="text-xs font-normal mt-1 opacity-70">
+                  {table.capacity} seats
                 </div>
-              </div>
-              <div className="grid grid-cols-5 gap-2">
-                {tables.map(table => (
-                  <button
-                    key={table.id}
-                    onClick={() => handleTableSelect(table)}
-                    className={`rounded-xl border-2 p-3 transition-all duration-150 font-bold text-sm ${getTableStyle(table)}`}
-                  >
-                    <div className="text-lg mb-0.5">🪑</div>
-                    <div>{table.label}</div>
-                    <div className="text-xs font-normal opacity-70">
-                      {table.status === "occupied" ? "occupied" : "free"}
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
+                <div className="text-xs font-normal capitalize opacity-70 mt-0.5">
+                  {table.status === "occupied" ? "📋 has order" : "free"}
+                </div>
+              </button>
+            ))}
+          </div>
+        </main>
+      )}
 
-            {/* Categories + Items */}
-            {selectedTable && (
+      {/* ── ORDER VIEW ── */}
+      {view === "order" && selectedTable && (
+        <main className="max-w-6xl mx-auto px-6 py-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+            {/* LEFT — Categories + Items */}
+            <div className="lg:col-span-2 flex flex-col gap-4">
+
+              {/* Category tabs */}
               <div className="bg-white rounded-2xl border border-gray-100 shadow-md p-4">
-                <p className="text-sm font-semibold text-gray-700 mb-3">
-                  Adding items for {selectedTable.label}
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+                  Categories
                 </p>
-
-                {/* Category tabs */}
-                <div className="flex gap-2 flex-wrap mb-4">
+                <div className="flex gap-2 flex-wrap">
                   {categories.map(cat => (
                     <button
                       key={cat.id}
                       onClick={() => setActiveCategory(cat.id)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+                      className={`px-4 py-2 rounded-xl text-sm font-medium transition ${
                         activeCategory === cat.id
-                          ? "bg-orange-500 text-white"
+                          ? "bg-orange-500 text-white shadow-md"
                           : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                       }`}
                     >
@@ -270,105 +284,146 @@ export default function ManagerPage() {
                     </button>
                   ))}
                 </div>
+              </div>
 
-                {/* Items grid */}
-                <div className="grid grid-cols-3 gap-2">
-                  {menuItems.map(item => {
-                    const qty = getQty(item.id);
-                    return (
-                      <div key={item.id}
-                        className={`border rounded-xl p-3 ${qty > 0 ? "border-orange-400 bg-orange-50" : "border-gray-200"}`}>
-                        <div className="font-medium text-xs text-gray-900 mb-1">{item.name}</div>
-                        <div className="text-orange-500 font-bold text-sm mb-2">₹{item.price}</div>
-                        <div className="flex items-center gap-1">
-                          <button
-                            onClick={() => updateQty(item.id, qty - 1)}
-                            disabled={qty === 0}
-                            className="w-6 h-6 rounded bg-red-100 text-red-500 text-sm font-bold disabled:opacity-30"
-                          >−</button>
-                          <span className="w-6 text-center text-xs font-bold">{qty}</span>
-                          <button
-                            onClick={() => addItem(item)}
-                            className="w-6 h-6 rounded bg-orange-500 text-white text-sm font-bold"
-                          >+</button>
+              {/* Items grid */}
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-md p-4">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+                  Items
+                </p>
+                {menuItems.length === 0 ? (
+                  <div className="text-center py-10 text-gray-300">
+                    No items in this category
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {menuItems.map(item => {
+                      const qty = getQty(item.id);
+                      return (
+                        <div
+                          key={item.id}
+                          className={`border rounded-xl p-4 transition ${
+                            qty > 0
+                              ? "border-orange-400 bg-orange-50"
+                              : "border-gray-200 bg-white hover:border-orange-300"
+                          }`}
+                        >
+                          <div className="font-semibold text-sm text-gray-900 mb-1 leading-tight">
+                            {item.name}
+                          </div>
+                          <div className="text-orange-500 font-bold text-base mb-3">
+                            ₹{item.price}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => updateQty(item.id, qty - 1)}
+                              disabled={qty === 0}
+                              className="w-8 h-8 rounded-lg bg-red-100 text-red-500 font-bold text-lg disabled:opacity-30 hover:bg-red-200 transition"
+                            >
+                              −
+                            </button>
+                            <span className="w-8 text-center font-bold text-sm">
+                              {qty}
+                            </span>
+                            <button
+                              onClick={() => addItem(item)}
+                              className="w-8 h-8 rounded-lg bg-orange-500 text-white font-bold text-lg hover:bg-orange-600 transition"
+                            >
+                              +
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* RIGHT — Order summary */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-md p-4 h-fit sticky top-4">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+                Order — {selectedTable.label}
+              </p>
+
+              {orderItems.length === 0 ? (
+                <div className="text-center py-8 text-gray-300 text-sm">
+                  No items added yet
+                </div>
+              ) : (
+                <div className="flex flex-col gap-2 mb-4 max-h-64 overflow-y-auto">
+                  {orderItems.map(item => (
+                    <div
+                      key={item.id}
+                      className="flex items-center justify-between py-2 border-b border-gray-50"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-gray-900 text-xs truncate">
+                          {item.name}
+                        </div>
+                        <div className="text-gray-400 text-xs">
+                          ₹{item.price} × {item.quantity}
                         </div>
                       </div>
-                    );
-                  })}
+                      <div className="flex items-center gap-1 mx-2">
+                        <button
+                          onClick={() => updateQty(item.id, item.quantity - 1)}
+                          className="w-6 h-6 rounded bg-red-100 text-red-500 text-xs font-bold hover:bg-red-200"
+                        >−</button>
+                        <span className="w-5 text-center text-xs font-bold">
+                          {item.quantity}
+                        </span>
+                        <button
+                          onClick={() => updateQty(item.id, item.quantity + 1)}
+                          className="w-6 h-6 rounded bg-orange-100 text-orange-500 text-xs font-bold hover:bg-orange-200"
+                        >+</button>
+                      </div>
+                      <div className="font-bold text-xs text-orange-500 min-w-12 text-right">
+                        ₹{Math.round(item.price * item.quantity)}
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              </div>
-            )}
-          </div>
+              )}
 
-          {/* RIGHT — Order summary */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-md p-4 h-fit">
-            <p className="text-sm font-semibold text-gray-700 mb-3">
-              {selectedTable ? `Order — ${selectedTable.label}` : "No table selected"}
-            </p>
-
-            {orderItems.length === 0 ? (
-              <div className="text-center py-10 text-gray-300 text-sm">
-                Add items to order
-              </div>
-            ) : (
-              <div className="flex flex-col gap-2 mb-4">
-                {orderItems.map(item => (
-                  <div key={item.id}
-                    className="flex items-center justify-between text-sm border-b border-gray-50 pb-2">
-                    <div className="flex-1">
-                      <div className="font-medium text-gray-900 text-xs">{item.name}</div>
-                      <div className="text-gray-400 text-xs">₹{item.price} × {item.quantity}</div>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => updateQty(item.id, item.quantity - 1)}
-                        className="w-5 h-5 rounded bg-red-100 text-red-500 text-xs font-bold"
-                      >−</button>
-                      <span className="w-5 text-center text-xs font-bold">{item.quantity}</span>
-                      <button
-                        onClick={() => updateQty(item.id, item.quantity + 1)}
-                        className="w-5 h-5 rounded bg-orange-100 text-orange-500 text-xs font-bold"
-                      >+</button>
-                    </div>
-                    <div className="ml-2 font-bold text-xs text-orange-500 min-w-12 text-right">
-                      ₹{Math.round(item.price * item.quantity)}
-                    </div>
+              {/* Subtotal */}
+              {orderItems.length > 0 && (
+                <div className="border-t border-gray-100 pt-3 mb-4">
+                  <div className="flex justify-between font-bold text-gray-900">
+                    <span>Subtotal</span>
+                    <span className="text-orange-500">₹{Math.round(subtotal)}</span>
                   </div>
-                ))}
-              </div>
-            )}
-
-            {orderItems.length > 0 && (
-              <div className="border-t border-gray-100 pt-3 mb-4">
-                <div className="flex justify-between text-sm font-bold text-gray-900">
-                  <span>Subtotal</span>
-                  <span className="text-orange-500">₹{Math.round(subtotal)}</span>
+                  <div className="flex justify-between text-xs text-gray-400 mt-1">
+                    <span>Items</span>
+                    <span>{orderItems.reduce((s, i) => s + i.quantity, 0)}</span>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-1">
+                    GST will be added at cashier billing
+                  </p>
                 </div>
-                <div className="text-xs text-gray-400 mt-1">
-                  GST will be added at billing
-                </div>
-              </div>
-            )}
+              )}
 
-            <button
-              onClick={handleSaveOrder}
-              disabled={saving || !selectedTable || !orderItems.length}
-              className="w-full py-3 bg-orange-500 hover:bg-orange-600 disabled:bg-gray-200 disabled:text-gray-400 text-white font-semibold rounded-xl transition text-sm"
-            >
-              {saving ? "Saving..." : "💾 Save Order"}
-            </button>
-
-            {orderItems.length > 0 && (
+              {/* Save button */}
               <button
-                onClick={() => setOrderItems([])}
-                className="w-full py-2 mt-2 bg-gray-50 hover:bg-gray-100 text-gray-500 rounded-xl transition text-sm"
+                onClick={handleSaveOrder}
+                disabled={saving || !orderItems.length}
+                className="w-full py-3 bg-orange-500 hover:bg-orange-600 disabled:bg-gray-200 disabled:text-gray-400 text-white font-semibold rounded-xl transition"
               >
-                Clear
+                {saving ? "Saving..." : "💾 Save Order"}
               </button>
-            )}
+
+              {orderItems.length > 0 && (
+                <button
+                  onClick={() => setOrderItems([])}
+                  className="w-full py-2 mt-2 bg-gray-50 hover:bg-gray-100 text-gray-500 rounded-xl transition text-sm"
+                >
+                  🗑️ Clear All
+                </button>
+              )}
+            </div>
           </div>
-        </div>
-      </main>
+        </main>
+      )}
     </div>
   );
 }

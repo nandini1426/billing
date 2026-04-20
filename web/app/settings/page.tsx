@@ -35,10 +35,11 @@ export default function SettingsPage() {
     footer_text: "Thank you! Visit again",
   });
 
-  const [cashiers,   setCashiers]   = useState<Cashier[]>([]);
-  const [newCashier, setNewCashier] = useState("");
-  const [saving,     setSaving]     = useState(false);
-  const [activeTab,  setActiveTab]  = useState<"restaurant" | "cashiers">("restaurant");
+  const [cashiers,        setCashiers]        = useState<Cashier[]>([]);
+  const [newCashier,      setNewCashier]      = useState("");
+  const [saving,          setSaving]          = useState(false);
+  const [activeTab,       setActiveTab]       = useState<"restaurant" | "cashiers">("restaurant");
+  const [restaurantCode,  setRestaurantCode]  = useState("");
 
   useEffect(() => { init(); }, []);
   useEffect(() => {
@@ -51,6 +52,7 @@ export default function SettingsPage() {
   useEffect(() => {
     fetchSettings();
     fetchCashiers();
+    fetchRestaurantCode();
   }, []);
 
   const fetchSettings = async () => {
@@ -77,6 +79,15 @@ export default function SettingsPage() {
       setCashiers(res.data);
     } catch {
       toast.error("Failed to load cashiers");
+    }
+  };
+
+  const fetchRestaurantCode = async () => {
+    try {
+      const res = await api.get("/restaurants/code");
+      setRestaurantCode(res.data.code);
+    } catch {
+      console.error("Failed to load restaurant code");
     }
   };
 
@@ -169,14 +180,40 @@ export default function SettingsPage() {
           </button>
         </div>
 
-        {/* Restaurant Info Tab */}
+        {/* ── RESTAURANT INFO TAB ── */}
         {activeTab === "restaurant" && (
           <div className="bg-white rounded-2xl border border-gray-100 shadow-md p-8">
             <h2 className="text-lg font-bold text-gray-900 mb-6">
               Restaurant Information
             </h2>
+
             <div className="grid grid-cols-1 gap-5">
 
+              {/* Restaurant Code */}
+              {restaurantCode && (
+                <div className="bg-orange-50 border border-orange-200 rounded-xl p-4">
+                  <p className="text-sm font-medium text-orange-700 mb-1">
+                    🔑 Your Restaurant Code
+                  </p>
+                  <p className="text-2xl font-bold text-orange-600 font-mono tracking-widest">
+                    {restaurantCode}
+                  </p>
+                  <p className="text-xs text-orange-500 mt-1">
+                    Share this code with your managers and cashiers to join your restaurant
+                  </p>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(restaurantCode);
+                      toast.success("Code copied!");
+                    }}
+                    className="mt-2 px-4 py-1.5 bg-orange-500 text-white text-xs font-medium rounded-lg hover:bg-orange-600 transition"
+                  >
+                    📋 Copy Code
+                  </button>
+                </div>
+              )}
+
+              {/* Restaurant Name */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
                   Restaurant Name <span className="text-red-400">*</span>
@@ -190,6 +227,7 @@ export default function SettingsPage() {
                 />
               </div>
 
+              {/* Address */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
                   Address
@@ -203,6 +241,7 @@ export default function SettingsPage() {
                 />
               </div>
 
+              {/* Contact + GSTIN */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">
@@ -238,6 +277,7 @@ export default function SettingsPage() {
                 </div>
               </div>
 
+              {/* UPI + Service Charge */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">
@@ -270,6 +310,7 @@ export default function SettingsPage() {
                 </div>
               </div>
 
+              {/* Footer text */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
                   Receipt Footer Text
@@ -283,6 +324,7 @@ export default function SettingsPage() {
                 />
               </div>
 
+              {/* Save button */}
               <button
                 onClick={handleSaveSettings}
                 disabled={saving}
@@ -290,11 +332,12 @@ export default function SettingsPage() {
               >
                 {saving ? "Saving..." : "💾 Save Settings"}
               </button>
+
             </div>
           </div>
         )}
 
-        {/* Cashiers Tab */}
+        {/* ── CASHIERS TAB ── */}
         {activeTab === "cashiers" && (
           <div className="bg-white rounded-2xl border border-gray-100 shadow-md p-8">
             <h2 className="text-lg font-bold text-gray-900 mb-6">
@@ -335,7 +378,9 @@ export default function SettingsPage() {
                       <div className="w-9 h-9 bg-orange-100 rounded-full flex items-center justify-center text-orange-600 font-bold text-sm">
                         {cashier.name.charAt(0).toUpperCase()}
                       </div>
-                      <span className="font-medium text-gray-900">{cashier.name}</span>
+                      <span className="font-medium text-gray-900">
+                        {cashier.name}
+                      </span>
                     </div>
                     <button
                       onClick={() => handleDeleteCashier(cashier.id)}
