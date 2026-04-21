@@ -85,7 +85,7 @@ export default function CashierPage() {
 
       {/* Header */}
       <header className="bg-white border-b border-gray-100 shadow-sm">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+        <div className="w-full px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button onClick={() => router.push("/dashboard")} className="text-gray-400 hover:text-gray-600 transition">
               ← Back
@@ -107,11 +107,11 @@ export default function CashierPage() {
 
         {!showFastBilling && (
           <>
-            <div className="text-center mb-8">
+            <div className="text-center mb-8" style={{ paddingTop: "30px" }}>
               <h2 className="text-2xl font-bold text-gray-900">Choose Billing Mode</h2>
               <p className="text-gray-500 mt-2">Select how you want to take the order</p>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6" style={{ paddingTop: "30px" }}>
               {modes.map((mode) => (
                 <button
                   key={mode.id}
