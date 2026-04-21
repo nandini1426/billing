@@ -39,7 +39,6 @@ export default function OrderPageInner() {
   const mode       = params.get("mode") || "table";
   const tableId    = params.get("tableId") || null;
   const tableLabel = params.get("tableLabel") || "";
-  const [mobileTab, setMobileTab] = useState<"menu" | "bill">("menu");
 
   const { user, init } = useAuthStore();
   const {
@@ -50,7 +49,6 @@ export default function OrderPageInner() {
   const { suggestions, searchCustomers, clearSuggestions } = useCustomer();
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  // Menu state
   const [categories,      setCategories]      = useState<Category[]>([]);
   const [menuItems,       setMenuItems]       = useState<MenuItem[]>([]);
   const [allItems,        setAllItems]        = useState<MenuItem[]>([]);
@@ -58,8 +56,8 @@ export default function OrderPageInner() {
   const [searchQuery,     setSearchQuery]     = useState("");
   const [billSearch,      setBillSearch]      = useState("");
   const [kotSearch,       setKotSearch]       = useState("");
+  const [mobileTab,       setMobileTab]       = useState<"menu" | "bill">("menu");
 
-  // Bill state
   const [gstEnabled,      setGstEnabled]      = useState(true);
   const [discountPct,     setDiscountPct]     = useState(0);
   const [discountFixed,   setDiscountFixed]   = useState(0);
@@ -69,20 +67,17 @@ export default function OrderPageInner() {
   const [orderNumber,     setOrderNumber]     = useState<string>("");
   const [showReceipt,     setShowReceipt]     = useState(false);
 
-  // Customer state
   const [customerName,    setCustomerName]    = useState("");
   const [customerPhone,   setCustomerPhone]   = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedCashier, setSelectedCashier] = useState("");
   const [cashiers,        setCashiers]        = useState<Cashier[]>([]);
 
-  // Support state
   const [showSupport,     setShowSupport]     = useState(false);
   const [supportMsg,      setSupportMsg]      = useState("");
   const [supportChat,     setSupportChat]     = useState<{role: string; text: string}[]>([]);
   const [supportLoading,  setSupportLoading]  = useState(false);
 
-  // Restaurant settings
   const [restaurantSettings, setRestaurantSettings] = useState<RestaurantSettings>({
     name: "MY RESTAURANT", address: "", contact: "",
     gstin: "", upi_id: "", service_charge: 0,
@@ -350,33 +345,30 @@ Restaurant name: ${restaurantSettings.name}`,
     <div style={{ display: "flex", flexDirection: "column", height: "100vh", background: "#f1f5f9" }}>
 
       {/* ── HEADER ─────────────────────────────────────────── */}
-      <header style={{ background: "#1e293b", padding: "0 16px", display: "flex", alignItems: "center", gap: 10, height: 54, flexShrink: 0 }}>
+      <header style={{ background: "#1e293b", padding: "0 12px", display: "flex", alignItems: "center", gap: 8, height: 54, flexShrink: 0, overflow: "hidden" }}>
 
-        {/* Back + Logo */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-          <button
-            onClick={() => { if (mode === "table") router.push("/cashier/table"); else router.push("/cashier"); }}
-            style={{ background: "none", border: "1px solid #334155", borderRadius: 6, padding: "4px 10px", cursor: "pointer", fontSize: 12, color: "#94a3b8" }}>
-            ← Back
-          </button>
-          <div style={{ width: 1, height: 24, background: "#334155" }} />
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <div style={{ width: 28, height: 28, background: "#f97316", borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>🍽️</div>
-            <div>
-              <div style={{ fontWeight: 700, fontSize: 13, color: "#f1f5f9", lineHeight: 1.2 }}>
-                {mode === "table" ? `Table ${tableLabel}` : mode === "takeaway" ? "Take Away" : mode === "delivery" ? "Delivery" : "Fast Billing"}
-              </div>
-              <div style={{ fontSize: 10, color: "#64748b" }}>{restaurantSettings.name}</div>
+        <button
+          onClick={() => { if (mode === "table") router.push("/cashier/table"); else router.push("/cashier"); }}
+          style={{ background: "none", border: "1px solid #334155", borderRadius: 6, padding: "4px 10px", cursor: "pointer", fontSize: 12, color: "#94a3b8", flexShrink: 0 }}>
+          ← Back
+        </button>
+
+        <div style={{ width: 1, height: 24, background: "#334155", flexShrink: 0 }} />
+
+        <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+          <div style={{ width: 28, height: 28, background: "#f97316", borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>🍽️</div>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 13, color: "#f1f5f9", lineHeight: 1.2, whiteSpace: "nowrap" }}>
+              {mode === "table" ? `Table ${tableLabel}` : mode === "takeaway" ? "Take Away" : mode === "delivery" ? "Delivery" : "Fast Billing"}
             </div>
+            <div style={{ fontSize: 10, color: "#64748b", whiteSpace: "nowrap" }}>{restaurantSettings.name}</div>
           </div>
         </div>
 
-        {/* Search Item */}
-        <div style={{ position: "relative", flex: 2, minWidth: 0 }}>
+        {/* Search — desktop only */}
+        <div className="desktop-only" style={{ position: "relative", flex: 2, minWidth: 0 }}>
           <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", fontSize: 13, pointerEvents: "none" }}>🔍</span>
-          <input
-            type="text" placeholder="Search Item"
-            value={searchQuery}
+          <input type="text" placeholder="Search Item" value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             style={{ width: "100%", background: "#0f172a", border: "1px solid #334155", borderRadius: 8, padding: "7px 10px 7px 32px", fontSize: 12, color: "#f1f5f9", outline: "none" }}
           />
@@ -386,31 +378,29 @@ Restaurant name: ${restaurantSettings.name}`,
           )}
         </div>
 
-        {/* Bill No */}
-        <div style={{ position: "relative", flex: 1, minWidth: 0 }}>
+        {/* Bill No — desktop only */}
+        <div className="desktop-only" style={{ position: "relative", flex: 1, minWidth: 0 }}>
           <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", fontSize: 13, pointerEvents: "none" }}>📋</span>
-          <input
-            type="text" placeholder="Bill No."
-            value={billSearch}
+          <input type="text" placeholder="Bill No." value={billSearch}
             onChange={e => setBillSearch(e.target.value)}
             onKeyDown={e => e.key === "Enter" && handleBillSearch()}
             style={{ width: "100%", background: "#0f172a", border: "1px solid #334155", borderRadius: 8, padding: "7px 10px 7px 32px", fontSize: 12, color: "#f1f5f9", outline: "none" }}
           />
         </div>
 
-        {/* KOT No */}
-        <div style={{ position: "relative", flex: 1, minWidth: 0 }}>
+        {/* KOT No — desktop only */}
+        <div className="desktop-only" style={{ position: "relative", flex: 1, minWidth: 0 }}>
           <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", fontSize: 13, pointerEvents: "none" }}>🧾</span>
-          <input
-            type="text" placeholder="KOT No."
-            value={kotSearch}
+          <input type="text" placeholder="KOT No." value={kotSearch}
             onChange={e => setKotSearch(e.target.value)}
             style={{ width: "100%", background: "#0f172a", border: "1px solid #334155", borderRadius: 8, padding: "7px 10px 7px 32px", fontSize: 12, color: "#f1f5f9", outline: "none" }}
           />
         </div>
 
-        {/* New Order */}
-        <button
+        <div style={{ flex: 1 }} />
+
+        {/* New Order — desktop only */}
+        <button className="desktop-only"
           onClick={() => { clearOrder(); setSearchQuery(""); setBillSearch(""); setKotSearch(""); toast.success("New order started"); }}
           style={{ background: "#f97316", border: "none", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, color: "#fff", fontWeight: 700, whiteSpace: "nowrap", flexShrink: 0 }}>
           + New Order
@@ -421,41 +411,68 @@ Restaurant name: ${restaurantSettings.name}`,
           {currentOrder.length} items
         </div>
 
-        {/* Print Preview */}
-        <button onClick={() => setShowReceipt(true)}
+        {/* Preview — desktop only */}
+        <button className="desktop-only" onClick={() => setShowReceipt(true)}
           style={{ background: "#334155", border: "none", borderRadius: 8, padding: "7px 12px", cursor: "pointer", fontSize: 12, color: "#f1f5f9", whiteSpace: "nowrap", flexShrink: 0 }}>
           🖨️ Preview
         </button>
 
-        {/* Request Support */}
-        <button onClick={() => setShowSupport(true)}
+        {/* Support — desktop only */}
+        <button className="desktop-only" onClick={() => setShowSupport(true)}
           style={{ background: "#dc2626", border: "none", borderRadius: 8, padding: "7px 12px", cursor: "pointer", fontSize: 12, color: "#fff", fontWeight: 700, whiteSpace: "nowrap", flexShrink: 0 }}>
           🆘 Support
+        </button>
+
+        {/* Mobile buttons */}
+        <button className="mobile-only" onClick={() => setShowReceipt(true)}
+          style={{ background: "#334155", border: "none", borderRadius: 8, padding: "7px 10px", cursor: "pointer", fontSize: 16, color: "#f1f5f9", flexShrink: 0 }}>
+          🖨️
+        </button>
+        <button className="mobile-only" onClick={() => setShowSupport(true)}
+          style={{ background: "#dc2626", border: "none", borderRadius: 8, padding: "7px 10px", cursor: "pointer", fontSize: 16, color: "#fff", flexShrink: 0 }}>
+          🆘
         </button>
 
       </header>
 
       {/* ── MOBILE TAB BAR ─────────────────────────────────── */}
-      <div style={{ display: "flex", background: "#1e293b", borderBottom: "1px solid #334155" }} className="mobile-tabs">
-        {["menu", "bill"].map(tab => (
-          <button key={tab}
-            onClick={() => setMobileTab(tab as "menu" | "bill")}
-            style={{
-              flex: 1, padding: "10px 0", border: "none", cursor: "pointer",
-              background: mobileTab === tab ? "#f97316" : "none",
-              color: mobileTab === tab ? "#fff" : "#94a3b8",
-              fontWeight: 700, fontSize: 13, textTransform: "capitalize"
-            }}>
-            {tab === "menu" ? "🍽️ Menu" : `🧾 Bill (${currentOrder.length})`}
-          </button>
-        ))}
+      <div className="mobile-tabs" style={{ background: "#1e293b", borderBottom: "1px solid #334155", flexDirection: "column" }}>
+        <div style={{ padding: "8px 12px", borderBottom: "1px solid #334155" }}>
+          <div style={{ position: "relative" }}>
+            <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", fontSize: 13 }}>🔍</span>
+            <input type="text" placeholder="Search item..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              style={{ width: "100%", background: "#0f172a", border: "1px solid #334155", borderRadius: 8, padding: "8px 10px 8px 32px", fontSize: 13, color: "#f1f5f9", outline: "none" }}
+            />
+            {searchQuery && (
+              <button onClick={() => setSearchQuery("")}
+                style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: "#64748b", cursor: "pointer", fontSize: 16 }}>✕</button>
+            )}
+          </div>
+        </div>
+        <div style={{ display: "flex" }}>
+          {(["menu", "bill"] as const).map(tab => (
+            <button key={tab}
+              onClick={() => setMobileTab(tab)}
+              style={{
+                flex: 1, padding: "10px 0", border: "none", cursor: "pointer",
+                background: mobileTab === tab ? "#f97316" : "none",
+                color: mobileTab === tab ? "#fff" : "#94a3b8",
+                fontWeight: 700, fontSize: 13,
+              }}>
+              {tab === "menu" ? "🍽️ Menu" : `🧾 Bill (${currentOrder.length})`}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* ── MAIN 3 PANELS ──────────────────────────────────── */}
       <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
 
-        {/* LEFT — Categories (hidden on mobile when bill tab active) */}
-        <aside className={`categories-panel ${mobileTab === "bill" ? "hide-mobile" : ""}`}
+        {/* LEFT — Categories */}
+        <aside
+          className={`categories-panel${mobileTab === "bill" ? " hide-mobile" : ""}`}
           style={{ width: 155, background: "#fff", borderRight: "1px solid #e2e8f0", overflowY: "auto", flexShrink: 0 }}>
           <div style={{ padding: "12px 12px 6px", fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 1 }}>
             Categories
@@ -476,8 +493,9 @@ Restaurant name: ${restaurantSettings.name}`,
           ))}
         </aside>
 
-        {/* MIDDLE — Items grid (hidden on mobile when bill tab active) */}
-        <section className={`items-panel ${mobileTab === "bill" ? "hide-mobile" : ""}`}
+        {/* MIDDLE — Items */}
+        <section
+          className={`items-panel${mobileTab === "bill" ? " hide-mobile" : ""}`}
           style={{ flex: 1, overflowY: "auto", padding: 14, background: "#f8fafc" }}>
           {searchQuery && (
             <div style={{ fontSize: 12, color: "#64748b", marginBottom: 10, padding: "6px 10px", background: "#fff", borderRadius: 8, border: "1px solid #e2e8f0" }}>
@@ -518,8 +536,7 @@ Restaurant name: ${restaurantSettings.name}`,
                       style={{ width: 30, height: 30, borderRadius: 8, border: "1px solid #e2e8f0", background: qty > 0 ? "#fee2e2" : "#f1f5f9", cursor: qty > 0 ? "pointer" : "not-allowed", fontSize: 18, fontWeight: 700, color: "#ef4444", display: "flex", alignItems: "center", justifyContent: "center" }}>
                       −
                     </button>
-                    <input
-                      type="number" min={0} value={qty}
+                    <input type="number" min={0} value={qty}
                       onChange={e => {
                         const v = parseInt(e.target.value) || 0;
                         if (v === 0) removeItem(item.id);
@@ -545,18 +562,16 @@ Restaurant name: ${restaurantSettings.name}`,
           </div>
         </section>
 
-        {/* RIGHT — Bill panel (hidden on mobile when menu tab active) */}
-        <aside className={`bill-panel ${mobileTab === "menu" ? "hide-mobile" : ""}`}
+        {/* RIGHT — Bill panel */}
+        <aside
+          className={`bill-panel${mobileTab === "menu" ? " hide-mobile" : ""}`}
           style={{ width: 340, background: "#fff", borderLeft: "1px solid #e2e8f0", display: "flex", flexDirection: "column", flexShrink: 0 }}>
 
           {/* Customer info */}
           <div style={{ padding: "12px 14px", background: "#fff7ed", borderBottom: "1px solid #fed7aa" }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#ea580c", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>
-              Customer Info
-            </div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#ea580c", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Customer Info</div>
             <div style={{ position: "relative", marginBottom: 6 }}>
-              <input
-                type="text" placeholder="Customer name" value={customerName}
+              <input type="text" placeholder="Customer name" value={customerName}
                 onChange={e => { setCustomerName(e.target.value); setShowSuggestions(true); searchCustomers(e.target.value); }}
                 onFocus={() => setShowSuggestions(true)}
                 onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
@@ -576,18 +591,13 @@ Restaurant name: ${restaurantSettings.name}`,
                 </div>
               )}
             </div>
-            <input
-              type="tel" placeholder="Phone number (10 digits)" value={customerPhone} maxLength={10}
+            <input type="tel" placeholder="Phone number (10 digits)" value={customerPhone} maxLength={10}
               onChange={e => {
                 const val = e.target.value.replace(/\D/g, '').slice(0, 10);
                 setCustomerPhone(val);
                 if (val.length >= 2) { setShowSuggestions(true); searchCustomers(val); }
               }}
-              style={{
-                width: "100%", border: customerPhone.length > 0 && customerPhone.length < 10
-                  ? "1px solid #ef4444" : "1px solid #fed7aa",
-                borderRadius: 8, padding: "8px 10px", fontSize: 13, background: "#fff", outline: "none", marginBottom: 6
-              }}
+              style={{ width: "100%", border: customerPhone.length > 0 && customerPhone.length < 10 ? "1px solid #ef4444" : "1px solid #fed7aa", borderRadius: 8, padding: "8px 10px", fontSize: 13, background: "#fff", outline: "none", marginBottom: 6 }}
             />
             {cashiers.length > 0 && (
               <select value={selectedCashier} onChange={e => setSelectedCashier(e.target.value)}
@@ -598,12 +608,10 @@ Restaurant name: ${restaurantSettings.name}`,
             )}
           </div>
 
-          {/* Order items list */}
+          {/* Order items */}
           <div style={{ flex: 1, overflowY: "auto", padding: "10px 14px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 1 }}>
-                Order Items
-              </div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 1 }}>Order Items</div>
               {currentOrder.length > 0 && (
                 <button onClick={() => clearOrder()}
                   style={{ background: "none", border: "none", fontSize: 11, color: "#ef4444", cursor: "pointer" }}>
@@ -635,22 +643,21 @@ Restaurant name: ${restaurantSettings.name}`,
             )}
           </div>
 
-          {/* Bill totals + controls */}
+          {/* Totals + Actions */}
           <div style={{ padding: "12px 14px", borderTop: "1px solid #e2e8f0", background: "#f8fafc" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
               <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, cursor: "pointer", color: "#374151", whiteSpace: "nowrap" }}>
                 <input type="checkbox" checked={gstEnabled} onChange={e => setGstEnabled(e.target.checked)} />
                 GST 5%
               </label>
-              <input type="number" min={0} max={100} placeholder="% disc"
-                value={discountPct || ""}
+              <input type="number" min={0} max={100} placeholder="% disc" value={discountPct || ""}
                 onChange={e => setDiscountPct(Number(e.target.value))}
                 style={{ flex: 1, border: "1px solid #e2e8f0", borderRadius: 6, padding: "5px 8px", fontSize: 12, textAlign: "center", outline: "none" }} />
-              <input type="number" min={0} placeholder="₹ disc"
-                value={discountFixed || ""}
+              <input type="number" min={0} placeholder="₹ disc" value={discountFixed || ""}
                 onChange={e => setDiscountFixed(Number(e.target.value))}
                 style={{ flex: 1, border: "1px solid #e2e8f0", borderRadius: 6, padding: "5px 8px", fontSize: 12, textAlign: "center", outline: "none" }} />
             </div>
+
             <div style={{ display: "flex", flexDirection: "column", gap: 5, marginBottom: 12 }}>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#64748b" }}>
                 <span>Subtotal</span><span>₹{bill.subtotal}</span>
@@ -670,7 +677,7 @@ Restaurant name: ${restaurantSettings.name}`,
                 </div>
               )}
               {mode === "delivery" && (
-                <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                   <span style={{ fontSize: 12, color: "#64748b" }}>Delivery ₹</span>
                   <input type="number" min={0} value={deliveryFee}
                     onChange={e => setDeliveryFee(Number(e.target.value))}
@@ -682,6 +689,7 @@ Restaurant name: ${restaurantSettings.name}`,
                 <span style={{ color: "#f97316" }}>₹{bill.grandTotal}</span>
               </div>
             </div>
+
             <div style={{ display: "flex", gap: 6, marginBottom: 6 }}>
               <button onClick={handleSave} disabled={saving}
                 style={{ flex: 1, padding: "9px 0", borderRadius: 8, border: "none", background: "#f59e0b", color: "#fff", fontWeight: 700, cursor: "pointer", fontSize: 13 }}>
@@ -715,8 +723,8 @@ Restaurant name: ${restaurantSettings.name}`,
 
       {/* ── RECEIPT MODAL ──────────────────────────────────── */}
       {showReceipt && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
-          <div style={{ background: "#fff", borderRadius: 16, padding: 24, width: 420, maxHeight: "90vh", overflowY: "auto" }}>
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 16 }}>
+          <div style={{ background: "#fff", borderRadius: 16, padding: 24, width: "100%", maxWidth: 420, maxHeight: "90vh", overflowY: "auto" }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
               <h3 style={{ fontWeight: 700, fontSize: 16 }}>Receipt Preview</h3>
               <button onClick={() => setShowReceipt(false)}
@@ -735,9 +743,7 @@ Restaurant name: ${restaurantSettings.name}`,
                 <span>Bill No: {orderNumber || "—"}</span>
                 <span>Date: {new Date().toLocaleDateString('en-IN')}</span>
               </div>
-              <div style={{ marginBottom: 2 }}>
-                Table: {mode === "table" ? tableLabel : mode.toUpperCase()} | Time: {new Date().toLocaleTimeString('en-IN')}
-              </div>
+              <div style={{ marginBottom: 2 }}>Table: {mode === "table" ? tableLabel : mode.toUpperCase()} | Time: {new Date().toLocaleTimeString('en-IN')}</div>
               {selectedCashier && <div style={{ marginBottom: 2 }}>Steward: {selectedCashier}</div>}
               <div style={{ borderTop: "1px dashed #ccc", margin: "8px 0" }} />
               <div style={{ display: "grid", gridTemplateColumns: "0.4fr 2fr 0.6fr 0.7fr 0.8fr", fontWeight: 600, marginBottom: 6, fontSize: 11 }}>
@@ -829,9 +835,8 @@ Restaurant name: ${restaurantSettings.name}`,
 
       {/* ── SUPPORT MODAL ──────────────────────────────────── */}
       {showSupport && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 2000 }}>
-          <div style={{ background: "#fff", borderRadius: 16, width: 420, height: 560, display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
-            {/* Header */}
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 2000, padding: 16 }}>
+          <div style={{ background: "#fff", borderRadius: 16, width: "100%", maxWidth: 420, height: 560, display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
             <div style={{ background: "#1e293b", padding: "14px 16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <div style={{ width: 32, height: 32, background: "#f97316", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>🆘</div>
@@ -843,8 +848,6 @@ Restaurant name: ${restaurantSettings.name}`,
               <button onClick={() => setShowSupport(false)}
                 style={{ background: "none", border: "none", color: "#64748b", cursor: "pointer", fontSize: 20 }}>✕</button>
             </div>
-
-            {/* Chat */}
             <div style={{ flex: 1, overflowY: "auto", padding: 16, display: "flex", flexDirection: "column", gap: 10 }}>
               {supportChat.length === 0 && (
                 <div style={{ textAlign: "center", color: "#94a3b8", fontSize: 13, paddingTop: 10 }}>
@@ -883,17 +886,12 @@ Restaurant name: ${restaurantSettings.name}`,
               )}
               <div ref={chatEndRef} />
             </div>
-
-            {/* Contact bar */}
             <div style={{ padding: "8px 16px", background: "#fff7ed", borderTop: "1px solid #fed7aa", fontSize: 11, color: "#92400e", display: "flex", justifyContent: "space-between" }}>
               <span>📧 support@billease.in</span>
               <span>📞 +91-9999999999</span>
             </div>
-
-            {/* Input */}
             <div style={{ padding: "10px 16px", borderTop: "1px solid #e2e8f0", display: "flex", gap: 8 }}>
-              <input
-                type="text" placeholder="Type your issue here..."
+              <input type="text" placeholder="Type your issue here..."
                 value={supportMsg}
                 onChange={e => setSupportMsg(e.target.value)}
                 onKeyDown={e => e.key === "Enter" && handleSupportSend()}
