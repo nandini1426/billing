@@ -137,7 +137,7 @@ export default function AnalyticsPage() {
         ) : (
           <>
             {/* Summary cards */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6" style={{ paddingTop: "20px" }}>
               {[
                 { label: "Total Orders",    value: summary?.total_orders || 0,                                icon: "📋", color: "bg-blue-50 text-blue-700" },
                 { label: "Total Revenue",   value: `₹${Number(summary?.total_revenue || 0).toLocaleString()}`, icon: "💰", color: "bg-green-50 text-green-700" },
@@ -153,7 +153,7 @@ export default function AnalyticsPage() {
             </div>
 
             {/* Order type breakdown */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6" style={{ paddingTop: "20px" }}>
               {[
                 { label: "Table",    value: summary?.table_orders    || 0, icon: "🪑", color: "bg-orange-100 text-orange-700" },
                 { label: "Takeaway", value: summary?.takeaway_orders || 0, icon: "🛍️", color: "bg-blue-100 text-blue-700" },
@@ -170,7 +170,7 @@ export default function AnalyticsPage() {
 
             {/* Revenue line chart */}
             {dailyData.length > 0 && (
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-md p-6 mb-6">
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-md p-6 mb-6" style={{ paddingTop: "20px" }}>
                 <h2 className="text-lg font-bold text-gray-900 mb-4">Revenue Trend</h2>
                 <ResponsiveContainer width="100%" height={250}>
                   <LineChart data={dailyData}>
@@ -202,7 +202,7 @@ export default function AnalyticsPage() {
 
               {/* Category bar chart */}
               {categoryData.length > 0 && (
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-md p-6">
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-md p-6" style={{ paddingTop: "20px" }}>
                   <h2 className="text-lg font-bold text-gray-900 mb-4">Sales by Category</h2>
                   <ResponsiveContainer width="100%" height={250}>
                     <BarChart data={categoryData}>
@@ -218,7 +218,7 @@ export default function AnalyticsPage() {
 
               {/* Order type pie chart */}
               {orderTypeData.length > 0 && (
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-md p-6">
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-md p-6" style={{ paddingTop: "20px" }}>
                   <h2 className="text-lg font-bold text-gray-900 mb-4">Orders by Type</h2>
                   <ResponsiveContainer width="100%" height={250}>
                     <PieChart>
@@ -246,7 +246,7 @@ export default function AnalyticsPage() {
 
             {/* Category performance table */}
             {categoryData.length > 0 && (
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-md overflow-hidden">
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-md overflow-hidden" style={{ paddingTop: "20px" }}>
                 <div className="px-6 py-4 border-b border-gray-100">
                   <h2 className="text-lg font-bold text-gray-900">Category Performance</h2>
                 </div>

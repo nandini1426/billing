@@ -157,7 +157,7 @@ export default function SettingsPage() {
       <main className="max-w-4xl mx-auto px-6 py-8">
 
         {/* Tabs */}
-        <div className="flex gap-2 mb-6">
+        <div className="flex gap-2 mb-6" style={{ paddingTop: "30px" }}>
           <button
             onClick={() => setActiveTab("restaurant")}
             className={`px-6 py-2.5 rounded-xl font-medium text-sm transition ${
@@ -182,7 +182,7 @@ export default function SettingsPage() {
 
         {/* ── RESTAURANT INFO TAB ── */}
         {activeTab === "restaurant" && (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-md p-8">
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-md p-8"style={{ paddingTop: "20px" }}>
             <h2 className="text-lg font-bold text-gray-900 mb-6">
               Restaurant Information
             </h2>
@@ -339,7 +339,7 @@ export default function SettingsPage() {
 
         {/* ── CASHIERS TAB ── */}
         {activeTab === "cashiers" && (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-md p-8">
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-md p-8" style={{ paddingTop: "20px" }}>
             <h2 className="text-lg font-bold text-gray-900 mb-6">
               Manage Cashiers
             </h2>

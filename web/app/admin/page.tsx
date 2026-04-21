@@ -206,7 +206,7 @@ export default function AdminPage() {
 
         {/* Categories Tab */}
         {activeTab === "categories" && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6" style={{ paddingTop: "20px" }}>
             <div className="bg-white rounded-2xl border border-gray-100 shadow-md p-6">
               <h2 className="text-lg font-bold text-gray-900 mb-4">
                 {editingCat ? "✏️ Edit Category" : "➕ Add Category"}

@@ -129,7 +129,7 @@ export default function OrdersPage() {
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-6 py-8">
+      <main className="max-w-6xl mx-auto px-6 py-8" style={{ paddingTop: "20px" }}>
 
         {/* Filters */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-md p-4 mb-6">
@@ -184,7 +184,7 @@ export default function OrdersPage() {
         </div>
 
         {/* Summary cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6" style={{ paddingTop: "20px" }}>
           {[
             { label: "Total Orders",   value: filtered.length,                                                                                           color: "bg-blue-50 text-blue-700" },
             { label: "Completed",      value: filtered.filter(o => o.status === "completed").length,                                                     color: "bg-green-50 text-green-700" },
