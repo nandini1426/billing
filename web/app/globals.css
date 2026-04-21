@@ -29,57 +29,40 @@ input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {
   -webkit-appearance: none;
 }
-@media print {
-  body * {
-    visibility: hidden;
-  }
 
-  #receipt-content,
-  #receipt-content * {
-    visibility: visible;
-  }
+/* ── Desktop/Mobile visibility ─────────────────── */
+.desktop-only { display: flex !important; }
+.mobile-only  { display: none !important; }
+.mobile-tabs  { display: none !important; }
+.hide-mobile  { display: flex !important; }
 
-  #receipt-content {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 80mm;
-    font-size: 11px;
-    font-family: monospace;
-  }
-
-  @page {
-    size: 80mm auto;
-    margin: 0mm;
-  }
-}
-
-/* Mobile responsive */
-.mobile-tabs {
-  display: none;
-}
-
+/* ── Mobile responsive ──────────────────────────── */
 @media (max-width: 768px) {
-  .mobile-tabs {
-    display: flex !important;
-  }
-
-  .hide-mobile {
-    display: none !important;
-  }
+  .desktop-only { display: none !important; }
+  .mobile-only  { display: flex !important; }
+  .mobile-tabs  { display: flex !important; }
+  .hide-mobile  { display: none !important; }
 
   .bill-panel {
     width: 100% !important;
+    flex-shrink: 0 !important;
   }
 
   .categories-panel {
-    width: 120px !important;
+    width: 110px !important;
+    min-width: 110px !important;
+  }
+
+  .items-panel {
+    flex: 1 !important;
   }
 }
 
+/* ── Print styles ───────────────────────────────── */
 @media print {
   body * { visibility: hidden; }
-  #receipt-content, #receipt-content * { visibility: visible; }
+  #receipt-content,
+  #receipt-content * { visibility: visible; }
   #receipt-content {
     position: fixed;
     top: 0;
