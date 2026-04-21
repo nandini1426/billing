@@ -39,6 +39,7 @@ export default function OrderPageInner() {
   const mode       = params.get("mode") || "table";
   const tableId    = params.get("tableId") || null;
   const tableLabel = params.get("tableLabel") || "";
+  const [mobileTab, setMobileTab] = useState<"menu" | "bill">("menu");
 
   const { user, init } = useAuthStore();
   const {
@@ -434,11 +435,28 @@ Restaurant name: ${restaurantSettings.name}`,
 
       </header>
 
+      {/* ── MOBILE TAB BAR ─────────────────────────────────── */}
+      <div style={{ display: "flex", background: "#1e293b", borderBottom: "1px solid #334155" }} className="mobile-tabs">
+        {["menu", "bill"].map(tab => (
+          <button key={tab}
+            onClick={() => setMobileTab(tab as "menu" | "bill")}
+            style={{
+              flex: 1, padding: "10px 0", border: "none", cursor: "pointer",
+              background: mobileTab === tab ? "#f97316" : "none",
+              color: mobileTab === tab ? "#fff" : "#94a3b8",
+              fontWeight: 700, fontSize: 13, textTransform: "capitalize"
+            }}>
+            {tab === "menu" ? "🍽️ Menu" : `🧾 Bill (${currentOrder.length})`}
+          </button>
+        ))}
+      </div>
+
       {/* ── MAIN 3 PANELS ──────────────────────────────────── */}
       <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
 
-        {/* LEFT — Categories */}
-        <aside style={{ width: 155, background: "#fff", borderRight: "1px solid #e2e8f0", overflowY: "auto", flexShrink: 0 }}>
+        {/* LEFT — Categories (hidden on mobile when bill tab active) */}
+        <aside className={`categories-panel ${mobileTab === "bill" ? "hide-mobile" : ""}`}
+          style={{ width: 155, background: "#fff", borderRight: "1px solid #e2e8f0", overflowY: "auto", flexShrink: 0 }}>
           <div style={{ padding: "12px 12px 6px", fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 1 }}>
             Categories
           </div>
@@ -458,14 +476,15 @@ Restaurant name: ${restaurantSettings.name}`,
           ))}
         </aside>
 
-        {/* MIDDLE — Items grid */}
-        <section style={{ flex: 1, overflowY: "auto", padding: 14, background: "#f8fafc" }}>
+        {/* MIDDLE — Items grid (hidden on mobile when bill tab active) */}
+        <section className={`items-panel ${mobileTab === "bill" ? "hide-mobile" : ""}`}
+          style={{ flex: 1, overflowY: "auto", padding: 14, background: "#f8fafc" }}>
           {searchQuery && (
             <div style={{ fontSize: 12, color: "#64748b", marginBottom: 10, padding: "6px 10px", background: "#fff", borderRadius: 8, border: "1px solid #e2e8f0" }}>
               🔍 <strong>{displayedItems.length}</strong> results for "<strong>{searchQuery}</strong>"
             </div>
           )}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(155px, 1fr))", gap: 10 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 10 }}>
             {displayedItems.map(item => {
               const qty = getQty(item.id);
               return (
@@ -526,8 +545,9 @@ Restaurant name: ${restaurantSettings.name}`,
           </div>
         </section>
 
-        {/* RIGHT — Bill panel */}
-        <aside style={{ width: 600, background: "#fff", borderLeft: "1px solid #e2e8f0", display: "flex", flexDirection: "column", flexShrink: 0 }}>
+        {/* RIGHT — Bill panel (hidden on mobile when menu tab active) */}
+        <aside className={`bill-panel ${mobileTab === "menu" ? "hide-mobile" : ""}`}
+          style={{ width: 340, background: "#fff", borderLeft: "1px solid #e2e8f0", display: "flex", flexDirection: "column", flexShrink: 0 }}>
 
           {/* Customer info */}
           <div style={{ padding: "12px 14px", background: "#fff7ed", borderBottom: "1px solid #fed7aa" }}>
@@ -617,8 +637,6 @@ Restaurant name: ${restaurantSettings.name}`,
 
           {/* Bill totals + controls */}
           <div style={{ padding: "12px 14px", borderTop: "1px solid #e2e8f0", background: "#f8fafc" }}>
-
-            {/* GST toggle + Discount */}
             <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
               <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, cursor: "pointer", color: "#374151", whiteSpace: "nowrap" }}>
                 <input type="checkbox" checked={gstEnabled} onChange={e => setGstEnabled(e.target.checked)} />
@@ -633,8 +651,6 @@ Restaurant name: ${restaurantSettings.name}`,
                 onChange={e => setDiscountFixed(Number(e.target.value))}
                 style={{ flex: 1, border: "1px solid #e2e8f0", borderRadius: 6, padding: "5px 8px", fontSize: 12, textAlign: "center", outline: "none" }} />
             </div>
-
-            {/* Totals */}
             <div style={{ display: "flex", flexDirection: "column", gap: 5, marginBottom: 12 }}>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#64748b" }}>
                 <span>Subtotal</span><span>₹{bill.subtotal}</span>
@@ -654,22 +670,18 @@ Restaurant name: ${restaurantSettings.name}`,
                 </div>
               )}
               {mode === "delivery" && (
-                <>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2 }}>
-                    <span style={{ fontSize: 12, color: "#64748b" }}>Delivery ₹</span>
-                    <input type="number" min={0} value={deliveryFee}
-                      onChange={e => setDeliveryFee(Number(e.target.value))}
-                      style={{ flex: 1, border: "1px solid #e2e8f0", borderRadius: 6, padding: "4px 8px", fontSize: 12, outline: "none" }} />
-                  </div>
-                </>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2 }}>
+                  <span style={{ fontSize: 12, color: "#64748b" }}>Delivery ₹</span>
+                  <input type="number" min={0} value={deliveryFee}
+                    onChange={e => setDeliveryFee(Number(e.target.value))}
+                    style={{ flex: 1, border: "1px solid #e2e8f0", borderRadius: 6, padding: "4px 8px", fontSize: 12, outline: "none" }} />
+                </div>
               )}
               <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 800, fontSize: 20, color: "#1e293b", paddingTop: 8, borderTop: "2px solid #1e293b", marginTop: 4 }}>
                 <span>Total</span>
                 <span style={{ color: "#f97316" }}>₹{bill.grandTotal}</span>
               </div>
             </div>
-
-            {/* Action buttons */}
             <div style={{ display: "flex", gap: 6, marginBottom: 6 }}>
               <button onClick={handleSave} disabled={saving}
                 style={{ flex: 1, padding: "9px 0", borderRadius: 8, border: "none", background: "#f59e0b", color: "#fff", fontWeight: 700, cursor: "pointer", fontSize: 13 }}>
