@@ -837,13 +837,20 @@ Restaurant name: ${restaurantSettings.name}`,
             )}
             <div style={{ marginTop: 8 }}>
               <button
-                onClick={() => {
-                  setShowReceipt(false);
-                  clearOrder();
-                  fetchNextBillNumber();
-                  if (mode === "table") router.push("/cashier/table");
-                  else router.push("/cashier");
-                }}
+                onClick={async () => {
+  if (savedId) {
+    try {
+      await api.post(`/orders/${savedId}/print`);
+    } catch (e) {
+      console.error("Failed to mark order complete", e);
+    }
+  }
+  setShowReceipt(false);
+  clearOrder();
+  fetchNextBillNumber();
+  if (mode === "table") router.push("/cashier/table");
+  else router.push("/cashier");
+}}
                 style={{ width: "100%", padding: "12px 0", borderRadius: 10, border: "1px solid #e5e7eb", background: "#f9fafb", cursor: "pointer", fontSize: 14, fontWeight: 600 }}>
                 ✓ Done & New Order
               </button>

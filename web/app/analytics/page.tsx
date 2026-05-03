@@ -89,11 +89,11 @@ export default function AnalyticsPage() {
   const worstDay    = dayData.length > 0 ? [...dayData].sort((a, b) => Number(a.revenue) - Number(b.revenue))[0] : null;
 
   const generateAISuggestions = async () => {
-    if (itemData.length === 0) return toast.error("No data available for AI analysis");
-    setAiLoading(true);
-    setAiGenerated(true);
+  if (itemData.length === 0) return toast.error("No data available for AI analysis");
+  setAiLoading(true);
+  setAiGenerated(true);
 
-    const context = `
+  const context = `
 Restaurant Analytics Data (${period}):
 
 TOP SELLING ITEMS:
@@ -110,71 +110,57 @@ WORST DAY: ${worstDay ? `${worstDay.day_name.trim()} (₹${Number(worstDay.reven
 
 SUMMARY:
 Total Orders: ${summary?.total_orders}, Total Revenue: ₹${summary?.total_revenue}, Avg Bill: ₹${Math.round(Number(summary?.avg_bill))}
-    `;
+  `;
 
-    try {
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 1500,
-          system: `You are a restaurant business analyst AI. Analyze the provided restaurant sales data and give practical, actionable suggestions. Be specific, concise and helpful. Use emojis to make it engaging. Format your response with clear sections.`,
-          messages: [{
-            role: "user",
-            content: `Analyze this restaurant data and give me:
+  try {
+    const res = await api.post('/analytics/ai-suggestions', {
+      system: `You are a restaurant business analyst AI. Analyze the provided restaurant sales data and give practical, actionable suggestions. Be specific, concise and helpful. Use emojis to make it engaging. Format your response with clear sections.`,
+      messages: [{
+        role: "user",
+        content: `Analyze this restaurant data and give me:
 1. Why top items are selling well
 2. Why bottom items are selling less and how to improve
 3. Specific offers/discounts for low sale days
 4. Overall business improvement suggestions
 
 ${context}`
-          }]
-        })
-      });
-      const data = await response.json();
-      const reply = data.content?.[0]?.text || "Unable to generate suggestions.";
-      setAiChat([{ role: "assistant", text: reply }]);
-    } catch {
-      setAiChat([{ role: "assistant", text: "Sorry, AI suggestions are temporarily unavailable. Please try again." }]);
-    } finally { setAiLoading(false); }
-  };
+      }]
+    });
+    const reply = res.data.content?.[0]?.text || "Unable to generate suggestions.";
+    setAiChat([{ role: "assistant", text: reply }]);
+  } catch {
+    setAiChat([{ role: "assistant", text: "Sorry, AI suggestions are temporarily unavailable. Please try again." }]);
+  } finally { setAiLoading(false); }
+};
 
   const handleAiChat = async () => {
-    if (!aiMsg.trim()) return;
-    const userMsg = aiMsg.trim();
-    setAiMsg("");
-    setAiChat(prev => [...prev, { role: "user", text: userMsg }]);
-    setAiLoading(true);
+  if (!aiMsg.trim()) return;
+  const userMsg = aiMsg.trim();
+  setAiMsg("");
+  setAiChat(prev => [...prev, { role: "user", text: userMsg }]);
+  setAiLoading(true);
 
-    const context = `
+  const context = `
 TOP ITEMS: ${topItems.map(i => `${i.item}(${i.qty_sold})`).join(', ')}
 BOTTOM ITEMS: ${bottomItems.map(i => `${i.item}(${i.qty_sold})`).join(', ')}
 BEST DAY: ${bestDay?.day_name?.trim()} WORST DAY: ${worstDay?.day_name?.trim()}
 TOTAL REVENUE: ₹${summary?.total_revenue} TOTAL ORDERS: ${summary?.total_orders}
-    `;
+  `;
 
-    try {
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 800,
-          system: `You are a restaurant business analyst AI. Answer questions about the restaurant's sales data. Be specific, concise and practical. Use emojis.`,
-          messages: [
-            ...aiChat.map(m => ({ role: m.role as "user"|"assistant", content: m.text })),
-            { role: "user" as const, content: `Context: ${context}\n\nQuestion: ${userMsg}` }
-          ]
-        })
-      });
-      const data = await response.json();
-      const reply = data.content?.[0]?.text || "Unable to process your question.";
-      setAiChat(prev => [...prev, { role: "assistant", text: reply }]);
-    } catch {
-      setAiChat(prev => [...prev, { role: "assistant", text: "Sorry, unable to process. Please try again." }]);
-    } finally { setAiLoading(false); }
-  };
+  try {
+    const res = await api.post('/analytics/ai-suggestions', {
+      system: `You are a restaurant business analyst AI. Answer questions about the restaurant's sales data. Be specific, concise and practical. Use emojis.`,
+      messages: [
+        ...aiChat.map(m => ({ role: m.role as "user"|"assistant", content: m.text })),
+        { role: "user" as const, content: `Context: ${context}\n\nQuestion: ${userMsg}` }
+      ]
+    });
+    const reply = res.data.content?.[0]?.text || "Unable to process your question.";
+    setAiChat(prev => [...prev, { role: "assistant", text: reply }]);
+  } catch {
+    setAiChat(prev => [...prev, { role: "assistant", text: "Sorry, unable to process. Please try again." }]);
+  } finally { setAiLoading(false); }
+};
 
   if (!user) return null;
 
