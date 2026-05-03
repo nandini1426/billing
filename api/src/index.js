@@ -79,6 +79,7 @@ try {
   const analyticsRoutes  = require('./routes/analytics');
   const settingsRoutes   = require('./routes/settings');
   const restaurantRoutes = require('./routes/restaurants');
+  const analyticsRoutes  = require('./routes/analytics');
 
   app.use('/api/auth',        authRoutes);
   app.use('/api/menu',        menuRoutes);

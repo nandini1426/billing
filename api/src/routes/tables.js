@@ -10,7 +10,7 @@ router.get('/', authMiddleware, async (req, res) => {
     const { rows } = await db.query(
       `SELECT * FROM tables
        WHERE restaurant_id=$1
-       ORDER BY label`,
+     ORDER BY CAST(REGEXP_REPLACE(label, '[^0-9]', '', 'g') AS INTEGER) ASC`,
       [req.user.restaurant_id]
     );
     res.json(rows);
