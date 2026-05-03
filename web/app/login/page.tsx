@@ -19,12 +19,15 @@ export default function LoginPage() {
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!username.trim()) return toast.error("Username is required");
-    if (!password.trim()) return toast.error("Password is required");
-    if (password.length < 4) return toast.error("Password must be at least 4 characters");
+  e.preventDefault();
+  if (!username.trim()) return toast.error("Username is required");
+  if (!password.trim()) return toast.error("Password is required");
 
-    setLoading(true);
+  setLoading(true);
+
+  // Retry up to 3 times — handles Railway cold start
+  let lastError = null;
+  for (let attempt = 1; attempt <= 3; attempt++) {
     try {
       const res = await api.post('/auth/login', { username, password });
       const { token, user } = res.data;
@@ -32,12 +35,20 @@ export default function LoginPage() {
       localStorage.setItem('user', JSON.stringify(user));
       toast.success(`Welcome back, ${user.username}!`);
       router.push("/dashboard");
-    } catch (err: any) {
-      toast.error(err.error || "Invalid username or password");
-    } finally {
       setLoading(false);
+      return;
+    } catch (err: any) {
+      lastError = err;
+      if (attempt < 3) {
+        toast.loading(`Connecting to server... (attempt ${attempt}/3)`);
+        await new Promise(r => setTimeout(r, 2000)); // wait 2 seconds
+      }
     }
-  };
+  }
+
+  setLoading(false);
+  toast.error(lastError?.error || "Login failed. Please try again.");
+};
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 to-amber-50">

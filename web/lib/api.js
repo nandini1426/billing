@@ -16,5 +16,12 @@ api.interceptors.response.use(
   (res) => res,
   (err) => Promise.reject(err.response?.data || err)
 );
+// Keep Railway API alive
+if (typeof window !== 'undefined') {
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+  setInterval(() => {
+    fetch(`${API_URL}/health`).catch(() => {});
+  }, 14 * 60 * 1000);
+}
 
 export default api;
