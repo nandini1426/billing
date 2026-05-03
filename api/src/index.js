@@ -7,13 +7,13 @@ process.on('unhandledRejection', (err) => {
   console.error('❌ Unhandled Rejection:', err);
 });
 
-const express = require('express');
-const http    = require('http');
+const express    = require('express');
+const http       = require('http');
 const { Server } = require('socket.io');
-const cors    = require('cors');
-const helmet  = require('helmet');
-const rateLimit = require('express-rate-limit');
-const dotenv  = require('dotenv');
+const cors       = require('cors');
+const helmet     = require('helmet');
+const rateLimit  = require('express-rate-limit');
+const dotenv     = require('dotenv');
 
 dotenv.config();
 
@@ -64,36 +64,30 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 500 }));
-app.use('/api/analytics', analyticsRoutes);
+
 // ── Health check ──────────────────────────────────────────────
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', time: new Date() });
 });
 
 // ── Routes ────────────────────────────────────────────────────
-try {
-  const authRoutes       = require('./routes/auth');
-  const menuRoutes       = require('./routes/menu');
-  const tableRoutes      = require('./routes/tables');
-  const orderRoutes      = require('./routes/orders');
-  const analyticsRoutes  = require('./routes/analytics');
-  const settingsRoutes   = require('./routes/settings');
-  const restaurantRoutes = require('./routes/restaurants');
-  const analyticsRoutes  = require('./routes/analytics');
+const authRoutes       = require('./routes/auth');
+const menuRoutes       = require('./routes/menu');
+const tableRoutes      = require('./routes/tables');
+const orderRoutes      = require('./routes/orders');
+const analyticsRoutes  = require('./routes/analytics');
+const settingsRoutes   = require('./routes/settings');
+const restaurantRoutes = require('./routes/restaurants');
 
-  app.use('/api/auth',        authRoutes);
-  app.use('/api/menu',        menuRoutes);
-  app.use('/api/tables',      tableRoutes);
-  app.use('/api/orders',      orderRoutes);
-  app.use('/api/analytics',   analyticsRoutes);
-  app.use('/api/settings',    settingsRoutes);
-  app.use('/api/restaurants', restaurantRoutes);
+app.use('/api/auth',        authRoutes);
+app.use('/api/menu',        menuRoutes);
+app.use('/api/tables',      tableRoutes);
+app.use('/api/orders',      orderRoutes);
+app.use('/api/analytics',   analyticsRoutes);
+app.use('/api/settings',    settingsRoutes);
+app.use('/api/restaurants', restaurantRoutes);
 
-  console.log('✅ All routes loaded');
-} catch (err) {
-  console.error('❌ Route loading error:', err.message);
-  console.error(err.stack);
-}
+console.log('✅ All routes loaded');
 
 // ── Socket.io ─────────────────────────────────────────────────
 io.on('connection', (socket) => {
@@ -104,13 +98,12 @@ io.on('connection', (socket) => {
 
 app.set('io', io);
 
-// ── Keep-alive ping (prevents Railway free tier sleep) ────────
+// ── Keep-alive ping ───────────────────────────────────────────
 if (process.env.NODE_ENV === 'production') {
   const https = require('https');
   const SELF_URL = process.env.RAILWAY_PUBLIC_DOMAIN
     ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}/api/health`
     : null;
-
   if (SELF_URL) {
     setInterval(() => {
       https.get(SELF_URL, (res) => {
@@ -118,7 +111,7 @@ if (process.env.NODE_ENV === 'production') {
       }).on('error', (err) => {
         console.error('Keep-alive error:', err.message);
       });
-    }, 14 * 60 * 1000); // every 14 minutes
+    }, 14 * 60 * 1000);
     console.log('✅ Keep-alive started:', SELF_URL);
   }
 }
