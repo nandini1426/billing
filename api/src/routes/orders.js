@@ -6,10 +6,13 @@ const router = express.Router();
 
 async function nextOrderNumber(restaurant_id) {
   const { rows } = await db.query(
-    'SELECT COUNT(*) FROM orders WHERE restaurant_id=$1',
+    `SELECT COALESCE(MAX(CAST(order_number AS INTEGER)), 0) + 1 AS next
+     FROM orders
+     WHERE restaurant_id = $1
+     AND order_number ~ '^[0-9]+$'`,
     [restaurant_id]
   );
-  return String(parseInt(rows[0].count) + 1);
+  return String(rows[0].next);
 }
 
 const roundTotal = (n) => Math.round(n);
@@ -149,7 +152,19 @@ router.get('/', authMiddleware, async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-
+// ── GET NEXT BILL NUMBER ──────────────────────────────────────
+router.get('/next-number', authMiddleware, async (req, res) => {
+  try {
+    const { rows } = await db.query(
+      'SELECT COUNT(*) FROM orders WHERE restaurant_id=$1',
+      [req.user.restaurant_id]
+    );
+    const next = parseInt(rows[0].count) + 1;
+    res.json({ next_number: String(next) });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 // ── GET SINGLE ORDER ──────────────────────────────────────────
 router.get('/:id', authMiddleware, async (req, res) => {
   try {

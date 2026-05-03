@@ -106,6 +106,7 @@ export default function OrderPageInner() {
     fetchCategories();
     fetchAllItems();
     fetchRestaurantData();
+    fetchNextBillNumber();
   }, []);
 
   useEffect(() => {
@@ -171,10 +172,18 @@ export default function OrderPageInner() {
     } catch { console.error("Failed to load restaurant data"); }
   };
 
+  const fetchNextBillNumber = async () => {
+    try {
+      const res = await api.get("/orders/next-number");
+      setOrderNumber(res.data.next_number);
+    } catch { console.error("Failed to fetch bill number"); }
+  };
+
   const bill = calcBill(discountPct, discountFixed, gstEnabled, deliveryFee);
   const serviceChargeAmt = restaurantSettings.service_charge > 0
     ? Math.round(bill.afterDiscount * restaurantSettings.service_charge / 100 * 100) / 100 : 0;
-  const roundOff = bill.grandTotal - (bill.afterDiscount + serviceChargeAmt + bill.cgst + bill.sgst);
+  const rawRoundOff = bill.grandTotal - (bill.afterDiscount + serviceChargeAmt + bill.cgst + bill.sgst);
+  const roundOff = Math.abs(rawRoundOff);
 
   const displayedItems = searchQuery.trim()
     ? allItems.filter(item => item.name.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -345,23 +354,25 @@ Restaurant name: ${restaurantSettings.name}`,
     <div style={{ display: "flex", flexDirection: "column", height: "100vh", background: "#f1f5f9" }}>
 
       {/* ── HEADER ─────────────────────────────────────────── */}
-      <header style={{ background: "#1e293b", padding: "0 12px", display: "flex", alignItems: "center", gap: 8, height: 54, flexShrink: 0, overflow: "hidden" }}>
+      <header style={{ background: "#1e293b", padding: "0 12px", display: "flex", alignItems: "center", gap: 8, height: 70, flexShrink: 0, overflow: "hidden" }}>
 
         <button
           onClick={() => { if (mode === "table") router.push("/cashier/table"); else router.push("/cashier"); }}
-          style={{ background: "none", border: "1px solid #334155", borderRadius: 6, padding: "4px 10px", cursor: "pointer", fontSize: 12, color: "#94a3b8", flexShrink: 0 }}>
+          style={{ background: "none", border: "1px solid #334155", borderRadius: 8, padding: "8px 14px", cursor: "pointer", fontSize: 14, color: "#94a3b8", flexShrink: 0, fontWeight: 700 }}>
           ← Back
         </button>
 
         <div style={{ width: 1, height: 24, background: "#334155", flexShrink: 0 }} />
 
         <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
-          <div style={{ width: 28, height: 28, background: "#f97316", borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>🍽️</div>
+          <div style={{ width: 30, height: 30, background: "#f97316", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>🍽️</div>
           <div>
-            <div style={{ fontWeight: 700, fontSize: 13, color: "#f1f5f9", lineHeight: 1.2, whiteSpace: "nowrap" }}>
+            <div style={{ fontWeight: 700, fontSize: 14, color: "#f1f5f9", lineHeight: 1.2, whiteSpace: "nowrap" }}>
               {mode === "table" ? `Table ${tableLabel}` : mode === "takeaway" ? "Take Away" : mode === "delivery" ? "Delivery" : "Fast Billing"}
             </div>
-            <div style={{ fontSize: 10, color: "#64748b", whiteSpace: "nowrap" }}>{restaurantSettings.name}</div>
+            <div style={{ fontSize: 10, color: "#64748b", whiteSpace: "nowrap" }}>
+              Bill No: <span style={{ color: "#f97316", fontWeight: 700 }}>#{orderNumber || "..."}</span>
+            </div>
           </div>
         </div>
 
@@ -401,38 +412,37 @@ Restaurant name: ${restaurantSettings.name}`,
 
         {/* New Order — desktop only */}
         <button className="desktop-only"
-          onClick={() => { clearOrder(); setSearchQuery(""); setBillSearch(""); setKotSearch(""); toast.success("New order started"); }}
-          style={{ background: "#f97316", border: "none", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, color: "#fff", fontWeight: 700, whiteSpace: "nowrap", flexShrink: 0 }}>
+          onClick={() => { clearOrder(); setSearchQuery(""); setBillSearch(""); setKotSearch(""); fetchNextBillNumber(); toast.success("New order started"); }}
+          style={{ background: "#f97316", border: "none", borderRadius: 8, padding: "8px 14px", cursor: "pointer", fontSize: 12, color: "#fff", fontWeight: 700, whiteSpace: "nowrap", flexShrink: 0 }}>
           + New Order
         </button>
 
         {/* Items badge */}
-        <div style={{ background: "#334155", color: "#f1f5f9", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600, whiteSpace: "nowrap", flexShrink: 0 }}>
+        <div style={{ background: "#334155", color: "#f1f5f9", borderRadius: 20, padding: "4px 10px", fontSize: 12, fontWeight: 600, whiteSpace: "nowrap", flexShrink: 0 }}>
           {currentOrder.length} items
         </div>
 
         {/* Preview — desktop only */}
         <button className="desktop-only" onClick={() => setShowReceipt(true)}
-          style={{ background: "#334155", border: "none", borderRadius: 8, padding: "7px 12px", cursor: "pointer", fontSize: 12, color: "#f1f5f9", whiteSpace: "nowrap", flexShrink: 0 }}>
+          style={{ background: "#334155", border: "none", borderRadius: 8, padding: "8px 12px", cursor: "pointer", fontSize: 12, color: "#f1f5f9", whiteSpace: "nowrap", flexShrink: 0 }}>
           🖨️ Preview
         </button>
 
         {/* Support — desktop only */}
         <button className="desktop-only" onClick={() => setShowSupport(true)}
-          style={{ background: "#dc2626", border: "none", borderRadius: 8, padding: "7px 12px", cursor: "pointer", fontSize: 12, color: "#fff", fontWeight: 700, whiteSpace: "nowrap", flexShrink: 0 }}>
+          style={{ background: "#dc2626", border: "none", borderRadius: 8, padding: "8px 12px", cursor: "pointer", fontSize: 12, color: "#fff", fontWeight: 700, whiteSpace: "nowrap", flexShrink: 0 }}>
           🆘 Support
         </button>
 
         {/* Mobile buttons */}
         <button className="mobile-only" onClick={() => setShowReceipt(true)}
-          style={{ background: "#334155", border: "none", borderRadius: 8, padding: "7px 10px", cursor: "pointer", fontSize: 16, color: "#f1f5f9", flexShrink: 0 }}>
+          style={{ background: "#334155", border: "none", borderRadius: 8, padding: "8px 10px", cursor: "pointer", fontSize: 18, color: "#f1f5f9", flexShrink: 0 }}>
           🖨️
         </button>
         <button className="mobile-only" onClick={() => setShowSupport(true)}
-          style={{ background: "#dc2626", border: "none", borderRadius: 8, padding: "7px 10px", cursor: "pointer", fontSize: 16, color: "#fff", flexShrink: 0 }}>
+          style={{ background: "#dc2626", border: "none", borderRadius: 8, padding: "8px 10px", cursor: "pointer", fontSize: 18, color: "#fff", flexShrink: 0 }}>
           🆘
         </button>
-
       </header>
 
       {/* ── MOBILE TAB BAR ─────────────────────────────────── */}
@@ -453,8 +463,7 @@ Restaurant name: ${restaurantSettings.name}`,
         </div>
         <div style={{ display: "flex" }}>
           {(["menu", "bill"] as const).map(tab => (
-            <button key={tab}
-              onClick={() => setMobileTab(tab)}
+            <button key={tab} onClick={() => setMobileTab(tab)}
               style={{
                 flex: 1, padding: "10px 0", border: "none", cursor: "pointer",
                 background: mobileTab === tab ? "#f97316" : "none",
@@ -740,7 +749,7 @@ Restaurant name: ${restaurantSettings.name}`,
               <div style={{ borderTop: "1px dashed #ccc", margin: "8px 0" }} />
               {customerName && <div style={{ marginBottom: 4 }}>Name: {customerName}</div>}
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 2 }}>
-                <span>Bill No: {orderNumber || "—"}</span>
+                <span>Bill No: <strong>{orderNumber || "—"}</strong></span>
                 <span>Date: {new Date().toLocaleDateString('en-IN')}</span>
               </div>
               <div style={{ marginBottom: 2 }}>Table: {mode === "table" ? tableLabel : mode.toUpperCase()} | Time: {new Date().toLocaleTimeString('en-IN')}</div>
@@ -780,7 +789,9 @@ Restaurant name: ${restaurantSettings.name}`,
                   <div style={{ display: "flex", justifyContent: "space-between" }}><span>CGST @2.5%</span><span>{bill.cgst}</span></div>
                   <div style={{ display: "flex", justifyContent: "space-between" }}><span>SGST @2.5%</span><span>{bill.sgst}</span></div>
                 </>}
-                <div style={{ display: "flex", justifyContent: "space-between" }}><span>Round Off</span><span>{roundOff.toFixed(2)}</span></div>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span>Round Off</span><span>+{roundOff.toFixed(2)}</span>
+                </div>
                 <div style={{ borderTop: "2px solid #000", marginTop: 4, paddingTop: 6 }} />
                 <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700, fontSize: 15 }}>
                   <span>Gross Amount</span><span>₹{bill.grandTotal}</span>
@@ -808,24 +819,32 @@ Restaurant name: ${restaurantSettings.name}`,
               )}
               <div style={{ textAlign: "center", fontSize: 11, color: "#888" }}>{restaurantSettings.footer_text}</div>
             </div>
+
+            {/* Buttons */}
             <div style={{ marginTop: 16 }}>
               <button onClick={() => window.print()}
-                style={{ width: "100%", padding: "10px 0", borderRadius: 10, border: "none", background: "#2563eb", color: "#fff", fontWeight: 600, cursor: "pointer", fontSize: 13 }}>
+                style={{ width: "100%", padding: "12px 0", borderRadius: 10, border: "none", background: "#2563eb", color: "#fff", fontWeight: 600, cursor: "pointer", fontSize: 14 }}>
                 🖨️ Print Receipt
               </button>
             </div>
             {customerPhone && customerPhone.length === 10 && (
               <div style={{ marginTop: 8 }}>
                 <button onClick={handleShareBillLink}
-                  style={{ width: "100%", padding: "10px 0", borderRadius: 10, border: "none", background: "#25d366", color: "#fff", fontWeight: 600, cursor: "pointer", fontSize: 13 }}>
+                  style={{ width: "100%", padding: "12px 0", borderRadius: 10, border: "none", background: "#25d366", color: "#fff", fontWeight: 600, cursor: "pointer", fontSize: 14 }}>
                   📱 Send Bill on WhatsApp
                 </button>
               </div>
             )}
             <div style={{ marginTop: 8 }}>
               <button
-                onClick={() => { setShowReceipt(false); clearOrder(); if (mode === "table") router.push("/cashier/table"); else router.push("/cashier"); }}
-                style={{ width: "100%", padding: "10px 0", borderRadius: 10, border: "1px solid #e5e7eb", background: "#f9fafb", cursor: "pointer", fontSize: 13, fontWeight: 600 }}>
+                onClick={() => {
+                  setShowReceipt(false);
+                  clearOrder();
+                  fetchNextBillNumber();
+                  if (mode === "table") router.push("/cashier/table");
+                  else router.push("/cashier");
+                }}
+                style={{ width: "100%", padding: "12px 0", borderRadius: 10, border: "1px solid #e5e7eb", background: "#f9fafb", cursor: "pointer", fontSize: 14, fontWeight: 600 }}>
                 ✓ Done & New Order
               </button>
             </div>
