@@ -144,7 +144,7 @@ export default function ManagerPage() {
       {/* Header */}
       <header style={{
         background: "#fff", borderBottom: "1px solid #e2e8f0",
-        padding: "0 16px", height: 60, display: "flex",
+        padding: "0 16px", height: 70, display: "flex",
         alignItems: "center", justifyContent: "space-between",
         flexShrink: 0, gap: 12,
       }}>
@@ -155,12 +155,12 @@ export default function ManagerPage() {
               : router.push("/dashboard")}
             style={{
               background: "#f1f5f9", border: "none", cursor: "pointer",
-              fontSize: 14, color: "#374151", padding: "8px 14px",
+              fontSize: 16, color: "#374151", padding: "10px 16px",
               borderRadius: 10, fontWeight: 600,
             }}>
             ← {view === "order" ? "Tables" : "Back"}
           </button>
-          <div style={{ fontWeight: 800, fontSize: 17, color: "#111827" }}>
+          <div style={{ fontWeight: 800, fontSize: 19, color: "#111827" }}>
             🧑‍💼 Manager
             {selectedTable && (
               <span style={{ color: "#f97316", fontSize: 15 }}> — {selectedTable.label}</span>
