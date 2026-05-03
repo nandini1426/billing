@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 import useAuthStore from "@/store/authStore";
 import api from "@/lib/api";
 import toast from "react-hot-toast";
-import LogoutButton from "@/components/LogoutButton";
 
 interface PendingOrder {
   id: string;
@@ -25,7 +24,7 @@ export default function CashierPage() {
   const router = useRouter();
   const { user, init } = useAuthStore();
   const [pendingOrders, setPendingOrders] = useState<PendingOrder[]>([]);
-  const [tables, setTables] = useState<Table[]>([]);
+  const [tables,        setTables]        = useState<Table[]>([]);
   const [showFastBilling, setShowFastBilling] = useState(false);
 
   useEffect(() => { init(); }, []);
@@ -74,124 +73,142 @@ export default function CashierPage() {
   if (!user) return null;
 
   const modes = [
-    { id: "table",    label: "Table Booking", icon: "🪑", desc: "Dine-in orders with table selection",    color: "bg-orange-50 border-orange-200 hover:bg-orange-100", textColor: "text-orange-600" },
-    { id: "takeaway", label: "Take Away",      icon: "🛍️", desc: "Quick orders to go",                    color: "bg-blue-50 border-blue-200 hover:bg-blue-100",       textColor: "text-blue-600" },
-    { id: "delivery", label: "Delivery",       icon: "🛵", desc: "Home delivery with delivery fee",       color: "bg-green-50 border-green-200 hover:bg-green-100",    textColor: "text-green-600" },
-    { id: "fast",     label: "Fast Billing",   icon: "⚡", desc: "Print bills for manager saved orders", color: "bg-purple-50 border-purple-200 hover:bg-purple-100", textColor: "text-purple-600" },
+    { id: "table",    label: "Table Booking", icon: "🪑", desc: "Dine-in orders",         color: "#fff7ed", border: "#fed7aa", textColor: "#ea580c" },
+    { id: "takeaway", label: "Take Away",      icon: "🛍️", desc: "Quick orders to go",     color: "#eff6ff", border: "#bfdbfe", textColor: "#2563eb" },
+    { id: "delivery", label: "Delivery",       icon: "🛵", desc: "Home delivery",          color: "#f0fdf4", border: "#bbf7d0", textColor: "#16a34a" },
+    { id: "fast",     label: "Fast Billing",   icon: "⚡", desc: "Bill manager orders",   color: "#faf5ff", border: "#e9d5ff", textColor: "#7c3aed" },
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-50">
+    <div style={{ minHeight: "100vh", background: "linear-gradient(135deg, #fff7ed 0%, #fef3c7 100%)" }}>
 
       {/* Header */}
-      <header className="bg-white border-b border-gray-100 shadow-sm">
-        <div className="w-full px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <button onClick={() => router.push("/dashboard")} className="text-gray-400 hover:text-gray-600 transition">
-              ← Back
-            </button>
-            <div className="w-px h-6 bg-gray-200" />
-            <div className="w-9 h-9 bg-orange-500 rounded-xl flex items-center justify-center">
-              <span className="text-lg">🍽️</span>
-            </div>
+      <header style={{
+        background: "#fff", borderBottom: "1px solid #e2e8f0",
+        padding: "0 16px", height: 70, display: "flex",
+        alignItems: "center", justifyContent: "space-between",
+        flexShrink: 0, position: "sticky", top: 0, zIndex: 10,
+        boxShadow: "0 1px 8px rgba(0,0,0,0.06)",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <button
+            onClick={() => showFastBilling ? setShowFastBilling(false) : router.push("/dashboard")}
+            style={{ background: "#f1f5f9", border: "none", cursor: "pointer", fontSize: 16, color: "#374151", padding: "10px 16px", borderRadius: 10, fontWeight: 700 }}>
+            ← Back
+          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ width: 36, height: 36, background: "#f97316", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>🍽️</div>
             <div>
-              <h1 className="font-bold text-gray-900">Cashier Control</h1>
-              <p className="text-xs text-gray-500">Select billing mode</p>
+              <div style={{ fontWeight: 800, fontSize: 17, color: "#111827", lineHeight: 1.2 }}>Cashier Control</div>
+              <div style={{ fontSize: 11, color: "#94a3b8" }}>Select billing mode</div>
             </div>
           </div>
-          <LogoutButton />
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ textAlign: "right" }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#111827", lineHeight: 1.2 }}>{user.username}</div>
+            <div style={{ fontSize: 11, color: "#f97316", fontWeight: 600, textTransform: "capitalize" }}>{user.role}</div>
+          </div>
+          <div style={{ width: 36, height: 36, background: "#fff7ed", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 14, color: "#f97316", border: "2px solid #fed7aa", flexShrink: 0 }}>
+            {user.username.charAt(0).toUpperCase()}
+          </div>
+          <button
+            onClick={() => { localStorage.removeItem('token'); localStorage.removeItem('user'); router.push('/login'); }}
+            title="Logout"
+            style={{ width: 40, height: 40, borderRadius: "50%", background: "#fee2e2", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+              <polyline points="16 17 21 12 16 7"/>
+              <line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
+          </button>
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-6 py-8">
+      <main style={{ padding: "20px 16px", maxWidth: 600, margin: "0 auto" }}>
 
+        {/* Mode selection */}
         {!showFastBilling && (
           <>
-            <div className="text-center mb-8" style={{ paddingTop: "30px" }}>
-              <h2 className="text-2xl font-bold text-gray-900">Choose Billing Mode</h2>
-              <p className="text-gray-500 mt-2">Select how you want to take the order</p>
+            <div style={{ marginBottom: 20 }}>
+              <h2 style={{ fontSize: 20, fontWeight: 800, color: "#111827", margin: 0 }}>Choose Billing Mode</h2>
+              <p style={{ fontSize: 13, color: "#94a3b8", marginTop: 4 }}>Select how you want to take the order</p>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6" style={{ paddingTop: "30px" }}>
-              {modes.map((mode) => (
-                <button
-                  key={mode.id}
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {modes.map(mode => (
+                <button key={mode.id}
                   onClick={() => {
                     if (mode.id === "fast") setShowFastBilling(true);
                     else if (mode.id === "table") router.push("/cashier/table");
                     else router.push(`/cashier/order?mode=${mode.id}`);
                   }}
-                  className={`group rounded-2xl p-8 border-2 transition-all duration-200 hover:-translate-y-1 hover:shadow-lg text-left ${mode.color}`}
-                >
-                  <div className="w-16 h-16 bg-white/60 rounded-2xl flex items-center justify-center mb-4">
-                    <span className="text-3xl">{mode.icon}</span>
+                  style={{
+                    background: "#fff", border: `1px solid ${mode.border}`,
+                    borderRadius: 16, padding: "16px 20px",
+                    display: "flex", alignItems: "center", gap: 16,
+                    cursor: "pointer", textAlign: "left",
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+                    width: "100%",
+                  }}>
+                  <div style={{ width: 52, height: 52, background: mode.color, borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26, flexShrink: 0 }}>
+                    {mode.icon}
                   </div>
-                  <h3 className="text-xl font-bold text-gray-900 mb-2">{mode.label}</h3>
-                  <p className="text-gray-500 text-sm">{mode.desc}</p>
-                  <div className={`mt-4 text-sm font-medium ${mode.textColor}`}>Start →</div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 700, fontSize: 16, color: "#111827", marginBottom: 2 }}>{mode.label}</div>
+                    <div style={{ fontSize: 12, color: "#94a3b8" }}>{mode.desc}</div>
+                  </div>
+                  <div style={{ color: mode.textColor, fontWeight: 700, fontSize: 22, flexShrink: 0 }}>›</div>
                 </button>
               ))}
             </div>
           </>
         )}
 
+        {/* Fast billing */}
         {showFastBilling && (
-          <div>
-            <div className="flex items-center gap-3 mb-6">
-              <button onClick={() => setShowFastBilling(false)} className="text-gray-400 hover:text-gray-600">
-                ← Back
-              </button>
+          <>
+            <div style={{ marginBottom: 20, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <div>
-                <h2 className="text-2xl font-bold text-gray-900">⚡ Fast Billing</h2>
-                <p className="text-gray-500 text-sm">Manager saved orders ready for billing</p>
+                <h2 style={{ fontSize: 20, fontWeight: 800, color: "#111827", margin: 0 }}>⚡ Fast Billing</h2>
+                <p style={{ fontSize: 13, color: "#94a3b8", marginTop: 4 }}>Manager saved orders ready for billing</p>
               </div>
-              <button onClick={fetchPendingOrders} className="ml-auto text-sm text-orange-500 hover:text-orange-600 font-medium">
+              <button onClick={fetchPendingOrders}
+                style={{ background: "#fff7ed", border: "1px solid #fed7aa", borderRadius: 10, padding: "8px 12px", cursor: "pointer", fontSize: 13, color: "#ea580c", fontWeight: 600 }}>
                 🔄 Refresh
               </button>
             </div>
 
             {pendingOrders.length === 0 ? (
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-md p-16 text-center">
-                <p className="text-5xl mb-4">⚡</p>
-                <p className="text-lg font-medium text-gray-900">No pending orders</p>
-                <p className="text-sm text-gray-400 mt-1">Manager needs to save orders first</p>
+              <div style={{ background: "#fff", borderRadius: 16, padding: 40, textAlign: "center", border: "1px solid #f3f4f6" }}>
+                <div style={{ fontSize: 48, marginBottom: 12 }}>⚡</div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: "#111827" }}>No pending orders</div>
+                <div style={{ fontSize: 13, color: "#94a3b8", marginTop: 4 }}>Manager needs to save orders first</div>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                 {pendingOrders.map(order => (
-                  <button
-                    key={order.id}
-                    onClick={() => handleFastBillingTable(order)}
-                    className="bg-white rounded-2xl border border-gray-100 shadow-md p-6 text-left hover:shadow-xl hover:-translate-y-1 transition-all duration-200"
-                  >
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        <span className="text-2xl">🪑</span>
-                        <span className="text-xl font-bold text-gray-900">
-                          {getTableLabel(order.table_id)}
-                        </span>
+                  <button key={order.id} onClick={() => handleFastBillingTable(order)}
+                    style={{ background: "#fff", borderRadius: 16, border: "1px solid #f3f4f6", padding: "16px 20px", textAlign: "left", cursor: "pointer", boxShadow: "0 2px 8px rgba(0,0,0,0.04)", width: "100%" }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ fontSize: 24 }}>🪑</span>
+                        <span style={{ fontSize: 18, fontWeight: 800, color: "#111827" }}>{getTableLabel(order.table_id)}</span>
                       </div>
-                      <span className="bg-yellow-100 text-yellow-700 text-xs font-medium px-2.5 py-1 rounded-full">
-                        Pending
+                      <span style={{ background: "#fef9c3", color: "#854d0e", fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 20 }}>Pending</span>
+                    </div>
+                    <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 4 }}>Order #{order.order_number}</div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span style={{ fontSize: 20, fontWeight: 800, color: "#f97316" }}>₹{order.grand_total}</span>
+                      <span style={{ background: "#faf5ff", color: "#7c3aed", border: "1px solid #e9d5ff", borderRadius: 10, padding: "6px 16px", fontSize: 13, fontWeight: 700 }}>
+                        ⚡ Bill This →
                       </span>
-                    </div>
-                    <div className="text-sm text-gray-500 mb-2">Order #{order.order_number}</div>
-                    <div className="text-sm text-gray-600 mb-3">
-                      {order.items?.[0] !== null ? `${order.items?.length} items` : "0 items"}
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-xl font-bold text-orange-500">₹{order.grand_total}</span>
-                      <span className="text-xs text-gray-400">
-                        {new Date(order.created_at).toLocaleTimeString('en-IN')}
-                      </span>
-                    </div>
-                    <div className="mt-3 w-full py-2 bg-purple-50 text-purple-600 rounded-xl text-sm font-semibold text-center">
-                      ⚡ Bill This Order →
                     </div>
                   </button>
                 ))}
               </div>
             )}
-          </div>
+          </>
         )}
       </main>
     </div>

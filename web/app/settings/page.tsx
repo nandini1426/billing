@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 import useAuthStore from "@/store/authStore";
 import api from "@/lib/api";
 import toast from "react-hot-toast";
-import LogoutButton from "@/components/LogoutButton";
 
 interface Settings {
   name: string;
@@ -26,12 +25,8 @@ export default function SettingsPage() {
   const { user, init } = useAuthStore();
 
   const [settings, setSettings] = useState<Settings>({
-    name: "",
-    address: "",
-    contact: "",
-    gstin: "",
-    upi_id: "",
-    service_charge: 0,
+    name: "", address: "", contact: "",
+    gstin: "", upi_id: "", service_charge: 0,
     footer_text: "Thank you! Visit again",
   });
 
@@ -58,37 +53,31 @@ export default function SettingsPage() {
   const fetchSettings = async () => {
     try {
       const res = await api.get("/settings");
-      const data = res.data;
+      const d = res.data;
       setSettings({
-        name:           data.name           || "",
-        address:        data.address        || "",
-        contact:        data.contact        || "",
-        gstin:          data.gstin          || "",
-        upi_id:         data.upi_id         || "",
-        service_charge: data.service_charge || 0,
-        footer_text:    data.footer_text    || "Thank you! Visit again",
+        name:           d.name           || "",
+        address:        d.address        || "",
+        contact:        d.contact        || "",
+        gstin:          d.gstin          || "",
+        upi_id:         d.upi_id         || "",
+        service_charge: d.service_charge || 0,
+        footer_text:    d.footer_text    || "Thank you! Visit again",
       });
-    } catch {
-      toast.error("Failed to load settings");
-    }
+    } catch { toast.error("Failed to load settings"); }
   };
 
   const fetchCashiers = async () => {
     try {
       const res = await api.get("/settings/cashiers");
       setCashiers(res.data);
-    } catch {
-      toast.error("Failed to load cashiers");
-    }
+    } catch { toast.error("Failed to load cashiers"); }
   };
 
   const fetchRestaurantCode = async () => {
     try {
       const res = await api.get("/restaurants/code");
       setRestaurantCode(res.data.code);
-    } catch {
-      console.error("Failed to load restaurant code");
-    }
+    } catch { console.error("Failed to load restaurant code"); }
   };
 
   const handleSaveSettings = async () => {
@@ -97,16 +86,12 @@ export default function SettingsPage() {
       return toast.error("Contact must be 10 digits");
     if (settings.gstin && settings.gstin.length !== 15)
       return toast.error("GSTIN must be 15 characters");
-
     setSaving(true);
     try {
       await api.put("/settings", settings);
       toast.success("Settings saved successfully!");
-    } catch {
-      toast.error("Failed to save settings");
-    } finally {
-      setSaving(false);
-    }
+    } catch { toast.error("Failed to save settings"); }
+    finally { setSaving(false); }
   };
 
   const handleAddCashier = async () => {
@@ -116,9 +101,7 @@ export default function SettingsPage() {
       setCashiers([...cashiers, res.data]);
       setNewCashier("");
       toast.success("Cashier added!");
-    } catch {
-      toast.error("Failed to add cashier");
-    }
+    } catch { toast.error("Failed to add cashier"); }
   };
 
   const handleDeleteCashier = async (id: string) => {
@@ -127,265 +110,210 @@ export default function SettingsPage() {
       await api.delete(`/settings/cashiers/${id}`);
       setCashiers(cashiers.filter(c => c.id !== id));
       toast.success("Cashier removed");
-    } catch {
-      toast.error("Failed to remove cashier");
-    }
+    } catch { toast.error("Failed to remove cashier"); }
   };
 
   if (!user) return null;
 
+  const inputStyle: React.CSSProperties = {
+    width: "100%", padding: "12px 14px",
+    border: "1.5px solid #e5e7eb", borderRadius: 10,
+    fontSize: 14, color: "#111827", outline: "none",
+    background: "#f9fafb", boxSizing: "border-box",
+  };
+
+  const labelStyle: React.CSSProperties = {
+    display: "block", fontSize: 12,
+    fontWeight: 700, color: "#374151", marginBottom: 6,
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-50">
+    <div style={{ minHeight: "100vh", background: "#f8fafc" }}>
 
       {/* Header */}
-      <header className="bg-white border-b border-gray-100 shadow-sm">
-        <div className="w-full px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => router.push("/dashboard")}
-              className="text-gray-400 hover:text-gray-600 transition"
-            >
-              ← Back
-            </button>
-            <div className="w-px h-6 bg-gray-200" />
-            <h1 className="font-bold text-gray-900 text-lg">⚙️ Restaurant Settings</h1>
-          </div>
-          <LogoutButton />
+      <header style={{
+        background: "#fff", borderBottom: "1px solid #e2e8f0",
+        padding: "0 16px", height: 70, display: "flex",
+        alignItems: "center", justifyContent: "space-between",
+        position: "sticky", top: 0, zIndex: 10,
+        boxShadow: "0 1px 8px rgba(0,0,0,0.06)",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <button onClick={() => router.push("/dashboard")}
+            style={{ background: "#f1f5f9", border: "none", cursor: "pointer", fontSize: 16, color: "#374151", padding: "10px 16px", borderRadius: 10, fontWeight: 700 }}>
+            ← Back
+          </button>
+          <div style={{ fontWeight: 800, fontSize: 17, color: "#111827" }}>⚙️ Settings</div>
         </div>
+        <button
+          onClick={() => { localStorage.removeItem('token'); localStorage.removeItem('user'); router.push('/login'); }}
+          style={{ width: 40, height: 40, borderRadius: "50%", background: "#fee2e2", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+            <polyline points="16 17 21 12 16 7"/>
+            <line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
+        </button>
       </header>
 
-      <main className="max-w-4xl mx-auto px-6 py-8">
+      <main style={{ padding: "16px", maxWidth: 600, margin: "0 auto" }}>
 
         {/* Tabs */}
-        <div className="flex gap-2 mb-6" style={{ paddingTop: "30px" }}>
-          <button
-            onClick={() => setActiveTab("restaurant")}
-            className={`px-6 py-2.5 rounded-xl font-medium text-sm transition ${
-              activeTab === "restaurant"
-                ? "bg-orange-500 text-white shadow-md"
-                : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
-            }`}
-          >
-            🏪 Restaurant Info
-          </button>
-          <button
-            onClick={() => setActiveTab("cashiers")}
-            className={`px-6 py-2.5 rounded-xl font-medium text-sm transition ${
-              activeTab === "cashiers"
-                ? "bg-orange-500 text-white shadow-md"
-                : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
-            }`}
-          >
-            👤 Cashiers
-          </button>
+        <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+          {[
+            { id: "restaurant", label: "🏪 Restaurant" },
+            { id: "cashiers",   label: "👤 Cashiers" },
+          ].map(tab => (
+            <button key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              style={{
+                flex: 1, padding: "12px 0", borderRadius: 12,
+                fontWeight: 700, fontSize: 14, border: "none", cursor: "pointer",
+                background: activeTab === tab.id ? "#f97316" : "#fff",
+                color: activeTab === tab.id ? "#fff" : "#374151",
+                boxShadow: activeTab === tab.id ? "0 4px 12px rgba(249,115,22,0.3)" : "0 1px 4px rgba(0,0,0,0.06)",
+              }}>
+              {tab.label}
+            </button>
+          ))}
         </div>
 
-        {/* ── RESTAURANT INFO TAB ── */}
+        {/* ── RESTAURANT TAB ── */}
         {activeTab === "restaurant" && (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-md p-8"style={{ paddingTop: "20px" }}>
-            <h2 className="text-lg font-bold text-gray-900 mb-6">
-              Restaurant Information
-            </h2>
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
 
-            <div className="grid grid-cols-1 gap-5">
-
-              {/* Restaurant Code */}
-              {restaurantCode && (
-                <div className="bg-orange-50 border border-orange-200 rounded-xl p-4">
-                  <p className="text-sm font-medium text-orange-700 mb-1">
-                    🔑 Your Restaurant Code
-                  </p>
-                  <p className="text-2xl font-bold text-orange-600 font-mono tracking-widest">
-                    {restaurantCode}
-                  </p>
-                  <p className="text-xs text-orange-500 mt-1">
-                    Share this code with your managers and cashiers to join your restaurant
-                  </p>
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(restaurantCode);
-                      toast.success("Code copied!");
-                    }}
-                    className="mt-2 px-4 py-1.5 bg-orange-500 text-white text-xs font-medium rounded-lg hover:bg-orange-600 transition"
-                  >
-                    📋 Copy Code
-                  </button>
+            {/* Restaurant Code */}
+            {restaurantCode && (
+              <div style={{ background: "#fff7ed", border: "1px solid #fed7aa", borderRadius: 16, padding: 16 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "#ea580c", marginBottom: 6 }}>
+                  🔑 Your Restaurant Code
                 </div>
-              )}
+                <div style={{ fontSize: 24, fontWeight: 800, color: "#f97316", letterSpacing: 3, fontFamily: "monospace", marginBottom: 6 }}>
+                  {restaurantCode}
+                </div>
+                <div style={{ fontSize: 12, color: "#92400e", marginBottom: 10 }}>
+                  Share this code with your managers and cashiers
+                </div>
+                <button
+                  onClick={() => { navigator.clipboard.writeText(restaurantCode); toast.success("Code copied!"); }}
+                  style={{ background: "#f97316", color: "#fff", border: "none", borderRadius: 8, padding: "8px 16px", cursor: "pointer", fontSize: 13, fontWeight: 700 }}>
+                  📋 Copy Code
+                </button>
+              </div>
+            )}
 
-              {/* Restaurant Name */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Restaurant Name <span className="text-red-400">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={settings.name}
-                  onChange={e => setSettings({ ...settings, name: e.target.value })}
-                  placeholder="e.g. Barkaas Arabic Restaurant"
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-400 text-gray-900"
-                />
+            {/* Restaurant Name */}
+            <div style={{ background: "#fff", borderRadius: 16, padding: 16, border: "1px solid #f3f4f6", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
+              <div style={{ fontWeight: 700, fontSize: 15, color: "#111827", marginBottom: 14 }}>
+                Restaurant Information
               </div>
 
-              {/* Address */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Address
-                </label>
-                <textarea
-                  value={settings.address}
+              <div style={{ marginBottom: 12 }}>
+                <label style={labelStyle}>Restaurant Name <span style={{ color: "#ef4444" }}>*</span></label>
+                <input type="text" value={settings.name}
+                  onChange={e => setSettings({ ...settings, name: e.target.value })}
+                  placeholder="e.g. Barkaas Arabic Restaurant"
+                  style={inputStyle} />
+              </div>
+
+              <div style={{ marginBottom: 12 }}>
+                <label style={labelStyle}>Address</label>
+                <textarea value={settings.address}
                   onChange={e => setSettings({ ...settings, address: e.target.value })}
                   placeholder="Door No, Street, Area, City, State, PIN"
                   rows={3}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-400 text-gray-900 resize-none"
-                />
+                  style={{ ...inputStyle, resize: "none" } as any} />
               </div>
 
-              {/* Contact + GSTIN */}
-              <div className="grid grid-cols-2 gap-4">
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    Contact Number
-                  </label>
-                  <input
-                    type="tel"
-                    maxLength={10}
-                    value={settings.contact}
-                    onChange={e => setSettings({
-                      ...settings,
-                      contact: e.target.value.replace(/\D/g, '').slice(0, 10)
-                    })}
+                  <label style={labelStyle}>Contact Number</label>
+                  <input type="tel" maxLength={10} value={settings.contact}
+                    onChange={e => setSettings({ ...settings, contact: e.target.value.replace(/\D/g, '').slice(0, 10) })}
                     placeholder="10-digit number"
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-400 text-gray-900"
-                  />
+                    style={inputStyle} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    GSTIN
-                  </label>
-                  <input
-                    type="text"
-                    maxLength={15}
-                    value={settings.gstin}
-                    onChange={e => setSettings({
-                      ...settings,
-                      gstin: e.target.value.toUpperCase().slice(0, 15)
-                    })}
+                  <label style={labelStyle}>GSTIN</label>
+                  <input type="text" maxLength={15} value={settings.gstin}
+                    onChange={e => setSettings({ ...settings, gstin: e.target.value.toUpperCase().slice(0, 15) })}
                     placeholder="15-character GSTIN"
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-400 text-gray-900 font-mono"
-                  />
+                    style={{ ...inputStyle, fontFamily: "monospace" }} />
                 </div>
               </div>
 
-              {/* UPI + Service Charge */}
-              <div className="grid grid-cols-2 gap-4">
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    UPI ID
-                  </label>
-                  <input
-                    type="text"
-                    value={settings.upi_id}
+                  <label style={labelStyle}>UPI ID</label>
+                  <input type="text" value={settings.upi_id}
                     onChange={e => setSettings({ ...settings, upi_id: e.target.value })}
                     placeholder="e.g. restaurant@ybl"
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-400 text-gray-900"
-                  />
+                    style={inputStyle} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    Service Charge (%)
-                  </label>
-                  <input
-                    type="number"
-                    min={0}
-                    max={20}
-                    value={settings.service_charge}
-                    onChange={e => setSettings({
-                      ...settings,
-                      service_charge: Number(e.target.value)
-                    })}
+                  <label style={labelStyle}>Service Charge (%)</label>
+                  <input type="number" min={0} max={20} value={settings.service_charge}
+                    onChange={e => setSettings({ ...settings, service_charge: Number(e.target.value) })}
                     placeholder="e.g. 5"
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-400 text-gray-900"
-                  />
+                    style={inputStyle} />
                 </div>
               </div>
 
-              {/* Footer text */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Receipt Footer Text
-                </label>
-                <input
-                  type="text"
-                  value={settings.footer_text}
+              <div style={{ marginBottom: 16 }}>
+                <label style={labelStyle}>Receipt Footer Text</label>
+                <input type="text" value={settings.footer_text}
                   onChange={e => setSettings({ ...settings, footer_text: e.target.value })}
                   placeholder="e.g. Thank you! Visit again"
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-400 text-gray-900"
-                />
+                  style={inputStyle} />
               </div>
 
-              {/* Save button */}
-              <button
-                onClick={handleSaveSettings}
-                disabled={saving}
-                className="w-full py-3 bg-orange-500 hover:bg-orange-600 disabled:bg-orange-300 text-white font-semibold rounded-xl transition shadow-md"
-              >
+              <button onClick={handleSaveSettings} disabled={saving}
+                style={{ width: "100%", padding: "14px 0", background: saving ? "#fed7aa" : "#f97316", color: "#fff", border: "none", borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: saving ? "not-allowed" : "pointer", boxShadow: "0 4px 12px rgba(249,115,22,0.3)" }}>
                 {saving ? "Saving..." : "💾 Save Settings"}
               </button>
-
             </div>
           </div>
         )}
 
         {/* ── CASHIERS TAB ── */}
         {activeTab === "cashiers" && (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-md p-8" style={{ paddingTop: "20px" }}>
-            <h2 className="text-lg font-bold text-gray-900 mb-6">
-              Manage Cashiers
-            </h2>
-
-            <div className="flex gap-3 mb-6">
-              <input
-                type="text"
-                value={newCashier}
-                onChange={e => setNewCashier(e.target.value)}
-                onKeyDown={e => e.key === "Enter" && handleAddCashier()}
-                placeholder="Enter cashier name"
-                className="flex-1 px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-400 text-gray-900"
-              />
-              <button
-                onClick={handleAddCashier}
-                className="px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-xl transition"
-              >
-                + Add
-              </button>
+          <div>
+            {/* Add cashier */}
+            <div style={{ background: "#fff", borderRadius: 16, padding: 16, marginBottom: 14, border: "1px solid #f3f4f6", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
+              <div style={{ fontWeight: 700, fontSize: 15, color: "#111827", marginBottom: 12 }}>Add Cashier</div>
+              <div style={{ display: "flex", gap: 10 }}>
+                <input type="text" value={newCashier}
+                  onChange={e => setNewCashier(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && handleAddCashier()}
+                  placeholder="Enter cashier name"
+                  style={{ ...inputStyle, flex: 1 }} />
+                <button onClick={handleAddCashier}
+                  style={{ background: "#f97316", color: "#fff", border: "none", borderRadius: 10, padding: "12px 20px", cursor: "pointer", fontWeight: 700, fontSize: 14, flexShrink: 0 }}>
+                  + Add
+                </button>
+              </div>
             </div>
 
+            {/* Cashiers list */}
             {cashiers.length === 0 ? (
-              <div className="text-center py-12 text-gray-400">
-                <p className="text-4xl mb-3">👤</p>
-                <p>No cashiers added yet</p>
-                <p className="text-sm mt-1">Add cashier names above</p>
+              <div style={{ textAlign: "center", padding: 40, color: "#94a3b8" }}>
+                <div style={{ fontSize: 40, marginBottom: 8 }}>👤</div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: "#111827", marginBottom: 4 }}>No cashiers added yet</div>
+                <div style={{ fontSize: 13 }}>Add cashier names above</div>
               </div>
             ) : (
-              <div className="flex flex-col gap-3">
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 {cashiers.map(cashier => (
-                  <div
-                    key={cashier.id}
-                    className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 bg-orange-100 rounded-full flex items-center justify-center text-orange-600 font-bold text-sm">
+                  <div key={cashier.id}
+                    style={{ background: "#fff", borderRadius: 14, padding: "14px 16px", border: "1px solid #f3f4f6", display: "flex", alignItems: "center", justifyContent: "space-between", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                      <div style={{ width: 40, height: 40, background: "#fff7ed", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 16, color: "#f97316", border: "2px solid #fed7aa" }}>
                         {cashier.name.charAt(0).toUpperCase()}
                       </div>
-                      <span className="font-medium text-gray-900">
-                        {cashier.name}
-                      </span>
+                      <span style={{ fontWeight: 700, fontSize: 15, color: "#111827" }}>{cashier.name}</span>
                     </div>
-                    <button
-                      onClick={() => handleDeleteCashier(cashier.id)}
-                      className="text-red-400 hover:text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-lg transition text-sm font-medium"
-                    >
+                    <button onClick={() => handleDeleteCashier(cashier.id)}
+                      style={{ background: "#fee2e2", border: "none", borderRadius: 10, padding: "8px 16px", cursor: "pointer", fontSize: 13, color: "#ef4444", fontWeight: 700 }}>
                       Remove
                     </button>
                   </div>

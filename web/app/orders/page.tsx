@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 import useAuthStore from "@/store/authStore";
 import api from "@/lib/api";
 import toast from "react-hot-toast";
-import LogoutButton from "@/components/LogoutButton";
 
 interface Order {
   id: string;
@@ -37,6 +36,7 @@ export default function OrdersPage() {
   const [filterDate,    setFilterDate]    = useState("");
   const [searchQuery,   setSearchQuery]   = useState("");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [showFilters,   setShowFilters]   = useState(false);
 
   useEffect(() => { init(); }, []);
   useEffect(() => { if (!user) router.push("/login"); }, [user]);
@@ -46,16 +46,14 @@ export default function OrdersPage() {
     setLoading(true);
     try {
       const params = new URLSearchParams();
-      if (filterStatus) params.append("status", filterStatus);
+      if (filterStatus) params.append("status",     filterStatus);
       if (filterType)   params.append("order_type", filterType);
-      if (filterDate)   params.append("date", filterDate);
+      if (filterDate)   params.append("date",       filterDate);
       const res = await api.get(`/orders?${params.toString()}`);
       setOrders(res.data);
     } catch {
       toast.error("Failed to load orders");
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
   const handleCancelOrder = async (id: string) => {
@@ -64,18 +62,16 @@ export default function OrdersPage() {
       await api.delete(`/orders/${id}`);
       toast.success("Order cancelled");
       fetchOrders();
-    } catch {
-      toast.error("Failed to cancel order");
-    }
+    } catch { toast.error("Failed to cancel order"); }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "completed":  return "bg-green-100 text-green-700";
-      case "pending":    return "bg-yellow-100 text-yellow-700";
-      case "preparing":  return "bg-blue-100 text-blue-700";
-      case "cancelled":  return "bg-red-100 text-red-700";
-      default:           return "bg-gray-100 text-gray-700";
+      case "completed":  return { bg: "#f0fdf4", color: "#16a34a" };
+      case "pending":    return { bg: "#fefce8", color: "#ca8a04" };
+      case "preparing":  return { bg: "#eff6ff", color: "#2563eb" };
+      case "cancelled":  return { bg: "#fee2e2", color: "#ef4444" };
+      default:           return { bg: "#f1f5f9", color: "#64748b" };
     }
   };
 
@@ -99,257 +95,230 @@ export default function OrdersPage() {
     );
   });
 
+  const totalRevenue = filtered
+    .filter(o => o.status === "completed")
+    .reduce((s, o) => s + Number(o.grand_total), 0);
+
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-50">
+    <div style={{ minHeight: "100vh", background: "#f8fafc" }}>
 
       {/* Header */}
-      <header className="bg-white border-b border-gray-100 shadow-sm">
-        <div className="w-full px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => router.push("/dashboard")}
-              className="text-gray-400 hover:text-gray-600 transition"
-            >
-              ← Back
-            </button>
-            <div className="w-px h-6 bg-gray-200" />
-            <h1 className="font-bold text-gray-900 text-lg">📋 Order History</h1>
-          </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={fetchOrders}
-              className="text-sm text-orange-500 hover:text-orange-600 font-medium"
-            >
-              🔄 Refresh
-            </button>
-            <LogoutButton />
-          </div>
+      <header style={{
+        background: "#fff", borderBottom: "1px solid #e2e8f0",
+        padding: "0 16px", height: 70, display: "flex",
+        alignItems: "center", justifyContent: "space-between",
+        position: "sticky", top: 0, zIndex: 10,
+        boxShadow: "0 1px 8px rgba(0,0,0,0.06)",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <button onClick={() => router.push("/dashboard")}
+            style={{ background: "#f1f5f9", border: "none", cursor: "pointer", fontSize: 16, color: "#374151", padding: "10px 16px", borderRadius: 10, fontWeight: 700 }}>
+            ← Back
+          </button>
+          <div style={{ fontWeight: 800, fontSize: 17, color: "#111827" }}>📋 Orders</div>
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button onClick={() => setShowFilters(!showFilters)}
+            style={{ background: showFilters ? "#f97316" : "#f1f5f9", border: "none", borderRadius: 10, padding: "8px 14px", cursor: "pointer", fontSize: 13, color: showFilters ? "#fff" : "#374151", fontWeight: 600 }}>
+            🔽 Filter
+          </button>
+          <button onClick={fetchOrders}
+            style={{ background: "#fff7ed", border: "1px solid #fed7aa", borderRadius: 10, padding: "8px 14px", cursor: "pointer", fontSize: 16, color: "#ea580c" }}>
+            🔄
+          </button>
+          <button
+            onClick={() => { localStorage.removeItem('token'); localStorage.removeItem('user'); router.push('/login'); }}
+            style={{ width: 40, height: 40, borderRadius: "50%", background: "#fee2e2", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+              <polyline points="16 17 21 12 16 7"/>
+              <line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
+          </button>
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-6 py-8" style={{ paddingTop: "20px" }}>
+      <main style={{ padding: "16px", maxWidth: 600, margin: "0 auto" }}>
+
+        {/* Search */}
+        <div style={{ position: "relative", marginBottom: 12 }}>
+          <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", fontSize: 16 }}>🔍</span>
+          <input type="text" placeholder="Search by name, phone, order no..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            style={{ width: "100%", padding: "12px 14px 12px 38px", border: "1.5px solid #e5e7eb", borderRadius: 12, fontSize: 14, outline: "none", background: "#fff", boxSizing: "border-box" as any }}
+          />
+        </div>
 
         {/* Filters */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-md p-4 mb-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <input
-              type="text"
-              placeholder="Search by name, phone, order no..."
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              className="col-span-2 px-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-400 text-sm"
-            />
-            <select
-              value={filterStatus}
-              onChange={e => setFilterStatus(e.target.value)}
-              className="px-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-400 text-sm bg-white"
-            >
+        {showFilters && (
+          <div style={{ background: "#fff", borderRadius: 14, padding: 14, marginBottom: 12, border: "1px solid #f3f4f6", display: "flex", flexDirection: "column", gap: 10 }}>
+            <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
+              style={{ width: "100%", padding: "10px 14px", border: "1.5px solid #e5e7eb", borderRadius: 10, fontSize: 13, outline: "none", background: "#fff" }}>
               <option value="">All Status</option>
               <option value="pending">Pending</option>
               <option value="preparing">Preparing</option>
               <option value="completed">Completed</option>
               <option value="cancelled">Cancelled</option>
             </select>
-            <select
-              value={filterType}
-              onChange={e => setFilterType(e.target.value)}
-              className="px-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-400 text-sm bg-white"
-            >
+            <select value={filterType} onChange={e => setFilterType(e.target.value)}
+              style={{ width: "100%", padding: "10px 14px", border: "1.5px solid #e5e7eb", borderRadius: 10, fontSize: 13, outline: "none", background: "#fff" }}>
               <option value="">All Types</option>
               <option value="table">Table</option>
               <option value="takeaway">Takeaway</option>
               <option value="delivery">Delivery</option>
               <option value="fast">Fast Billing</option>
             </select>
-            <input
-              type="date"
-              value={filterDate}
-              onChange={e => setFilterDate(e.target.value)}
-              className="col-span-2 md:col-span-1 px-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-400 text-sm"
+            <input type="date" value={filterDate} onChange={e => setFilterDate(e.target.value)}
+              style={{ width: "100%", padding: "10px 14px", border: "1.5px solid #e5e7eb", borderRadius: 10, fontSize: 13, outline: "none", background: "#fff" }}
             />
-            <button
-              onClick={() => {
-                setFilterStatus("");
-                setFilterType("");
-                setFilterDate("");
-                setSearchQuery("");
-              }}
-              className="col-span-2 md:col-span-1 px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-50 transition"
-            >
+            <button onClick={() => { setFilterStatus(""); setFilterType(""); setFilterDate(""); setSearchQuery(""); }}
+              style={{ width: "100%", padding: "10px 0", background: "#f1f5f9", border: "none", borderRadius: 10, fontSize: 13, color: "#64748b", fontWeight: 600, cursor: "pointer" }}>
               Clear Filters
             </button>
           </div>
-        </div>
+        )}
 
         {/* Summary cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6" style={{ paddingTop: "20px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10, marginBottom: 16 }}>
           {[
-            { label: "Total Orders",   value: filtered.length,                                                                                           color: "bg-blue-50 text-blue-700" },
-            { label: "Completed",      value: filtered.filter(o => o.status === "completed").length,                                                     color: "bg-green-50 text-green-700" },
-            { label: "Pending",        value: filtered.filter(o => o.status === "pending").length,                                                       color: "bg-yellow-50 text-yellow-700" },
-            { label: "Total Revenue",  value: `₹${filtered.filter(o => o.status === "completed").reduce((s, o) => s + Number(o.grand_total), 0).toLocaleString()}`, color: "bg-orange-50 text-orange-700" },
+            { label: "Total Orders",  value: filtered.length,                                          bg: "#eff6ff", color: "#2563eb" },
+            { label: "Completed",     value: filtered.filter(o => o.status === "completed").length,    bg: "#f0fdf4", color: "#16a34a" },
+            { label: "Pending",       value: filtered.filter(o => o.status === "pending").length,      bg: "#fefce8", color: "#ca8a04" },
+            { label: "Revenue",       value: `₹${totalRevenue.toLocaleString()}`,                      bg: "#fff7ed", color: "#ea580c" },
           ].map((card, i) => (
-            <div key={i} className={`${card.color} rounded-2xl p-4`}>
-              <p className="text-xs font-medium opacity-70">{card.label}</p>
-              <p className="text-2xl font-bold mt-1">{card.value}</p>
+            <div key={i} style={{ background: card.bg, borderRadius: 14, padding: "14px 16px" }}>
+              <div style={{ fontSize: 11, color: card.color, fontWeight: 600, opacity: 0.8, marginBottom: 4 }}>{card.label}</div>
+              <div style={{ fontSize: 20, fontWeight: 800, color: card.color }}>{card.value}</div>
             </div>
           ))}
         </div>
 
-        {/* Orders table */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-md overflow-hidden">
-          {loading ? (
-            <div className="text-center py-20 text-gray-400">Loading orders...</div>
-          ) : filtered.length === 0 ? (
-            <div className="text-center py-20 text-gray-400">
-              <p className="text-4xl mb-3">📋</p>
-              <p>No orders found</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="bg-gray-50 border-b border-gray-100">
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500">Order No</th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500">Type</th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500">Customer</th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500">Items</th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500">Amount</th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500">Status</th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500">Time</th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map(order => (
-                    <tr key={order.id} className="border-b border-gray-50 hover:bg-gray-50 transition">
-                      <td className="px-4 py-3 text-sm font-semibold text-gray-900">
-                        #{order.order_number}
-                      </td>
-                      <td className="px-4 py-3 text-sm">
+        {/* Orders list */}
+        {loading ? (
+          <div style={{ textAlign: "center", padding: 40, color: "#94a3b8" }}>Loading orders...</div>
+        ) : filtered.length === 0 ? (
+          <div style={{ textAlign: "center", padding: 40, color: "#94a3b8" }}>
+            <div style={{ fontSize: 40, marginBottom: 8 }}>📋</div>
+            <div>No orders found</div>
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {filtered.map(order => {
+              const statusStyle = getStatusColor(order.status);
+              return (
+                <div key={order.id}
+                  style={{ background: "#fff", borderRadius: 14, padding: "14px 16px", border: "1px solid #f3f4f6", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: 15, color: "#111827" }}>#{order.order_number}</div>
+                      <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 2 }}>
                         {getTypeIcon(order.order_type)} {order.order_type}
-                      </td>
-                      <td className="px-4 py-3 text-sm">
-                        <div className="font-medium text-gray-900">{order.customer_name || "—"}</div>
-                        <div className="text-xs text-gray-400">{order.customer_phone || ""}</div>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-600">
-                        {order.items?.[0] !== null ? order.items?.length : 0} items
-                      </td>
-                      <td className="px-4 py-3 text-sm font-bold text-orange-500">
-                        ₹{order.grand_total}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={`px-2.5 py-1 rounded-full text-xs font-medium capitalize ${getStatusColor(order.status)}`}>
-                          {order.status}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-xs text-gray-400">
-                        {new Date(order.created_at).toLocaleString('en-IN')}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => setSelectedOrder(order)}
-                            className="px-2.5 py-1 bg-blue-50 text-blue-600 rounded-lg text-xs font-medium hover:bg-blue-100 transition"
-                          >
-                            View
-                          </button>
-                          {order.status !== "cancelled" && order.status !== "completed" && (
-                            <button
-                              onClick={() => handleCancelOrder(order.id)}
-                              className="px-2.5 py-1 bg-red-50 text-red-500 rounded-lg text-xs font-medium hover:bg-red-100 transition"
-                            >
-                              Cancel
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+                        {order.customer_name ? ` · ${order.customer_name}` : ""}
+                      </div>
+                    </div>
+                    <span style={{ background: statusStyle.bg, color: statusStyle.color, fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 20, textTransform: "capitalize" }}>
+                      {order.status}
+                    </span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div>
+                      <div style={{ fontSize: 18, fontWeight: 800, color: "#f97316" }}>₹{order.grand_total}</div>
+                      <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 1 }}>
+                        {order.items?.[0] !== null ? order.items?.length : 0} items · {new Date(order.created_at).toLocaleString('en-IN')}
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <button onClick={() => setSelectedOrder(order)}
+                        style={{ background: "#eff6ff", border: "none", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, color: "#2563eb", fontWeight: 600 }}>
+                        View
+                      </button>
+                      {order.status !== "cancelled" && order.status !== "completed" && (
+                        <button onClick={() => handleCancelOrder(order.id)}
+                          style={{ background: "#fee2e2", border: "none", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, color: "#ef4444", fontWeight: 600 }}>
+                          Cancel
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </main>
 
       {/* Order detail modal */}
       {selectedOrder && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl p-6 w-96 max-h-[90vh] overflow-y-auto shadow-2xl">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-bold">Order #{selectedOrder.order_number}</h3>
-              <button
-                onClick={() => setSelectedOrder(null)}
-                className="text-gray-400 hover:text-gray-600 text-xl"
-              >✕</button>
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 50 }}>
+          <div style={{ background: "#fff", borderRadius: "20px 20px 0 0", padding: 24, width: "100%", maxWidth: 600, maxHeight: "85vh", overflowY: "auto" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <h3 style={{ fontWeight: 800, fontSize: 17, margin: 0 }}>Order #{selectedOrder.order_number}</h3>
+              <button onClick={() => setSelectedOrder(null)}
+                style={{ background: "#f1f5f9", border: "none", borderRadius: "50%", width: 36, height: 36, cursor: "pointer", fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
             </div>
 
-            <div className="bg-gray-50 rounded-xl p-4 mb-4 text-sm space-y-2">
-              <div className="flex justify-between">
-                <span className="text-gray-500">Type</span>
-                <span className="font-medium capitalize">{selectedOrder.order_type}</span>
+            <div style={{ background: "#f8fafc", borderRadius: 12, padding: 14, marginBottom: 14, fontSize: 13 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                <span style={{ color: "#64748b" }}>Type</span>
+                <span style={{ fontWeight: 600, textTransform: "capitalize" }}>{selectedOrder.order_type}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Status</span>
-                <span className={`px-2 py-0.5 rounded-full text-xs font-medium capitalize ${getStatusColor(selectedOrder.status)}`}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                <span style={{ color: "#64748b" }}>Status</span>
+                <span style={{ fontWeight: 700, textTransform: "capitalize", color: getStatusColor(selectedOrder.status).color }}>
                   {selectedOrder.status}
                 </span>
               </div>
               {selectedOrder.customer_name && (
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Customer</span>
-                  <span className="font-medium">{selectedOrder.customer_name}</span>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                  <span style={{ color: "#64748b" }}>Customer</span>
+                  <span style={{ fontWeight: 600 }}>{selectedOrder.customer_name}</span>
                 </div>
               )}
-              <div className="flex justify-between">
-                <span className="text-gray-500">Date</span>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span style={{ color: "#64748b" }}>Date</span>
                 <span>{new Date(selectedOrder.created_at).toLocaleString('en-IN')}</span>
               </div>
             </div>
 
-            <div className="border border-gray-100 rounded-xl overflow-hidden mb-4">
-              <div className="bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-500 grid grid-cols-4">
-                <span className="col-span-2">Item</span>
-                <span className="text-center">Qty</span>
-                <span className="text-right">Total</span>
-              </div>
-              {selectedOrder.items?.filter(i => i !== null).map((item: any, i: number) => (
-                <div key={i} className="px-3 py-2 text-sm grid grid-cols-4 border-t border-gray-50">
-                  <span className="col-span-2">{item.name}</span>
-                  <span className="text-center">{item.quantity}</span>
-                  <span className="text-right font-medium">₹{item.line_total}</span>
+            {/* Items */}
+            <div style={{ marginBottom: 14 }}>
+              {selectedOrder.items?.filter((i: any) => i !== null).map((item: any, i: number) => (
+                <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingBottom: 10, marginBottom: 10, borderBottom: "1px solid #f1f5f9" }}>
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: 14, color: "#111827" }}>{item.name}</div>
+                    <div style={{ fontSize: 12, color: "#94a3b8" }}>Qty: {item.quantity} × ₹{item.unit_price}</div>
+                  </div>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: "#f97316" }}>₹{item.line_total}</div>
                 </div>
               ))}
             </div>
 
-            <div className="text-sm space-y-2">
-              <div className="flex justify-between text-gray-500">
+            {/* Totals */}
+            <div style={{ background: "#f8fafc", borderRadius: 12, padding: 14, fontSize: 13 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, color: "#64748b" }}>
                 <span>Subtotal</span><span>₹{selectedOrder.subtotal}</span>
               </div>
               {Number(selectedOrder.cgst) > 0 && (
-                <div className="flex justify-between text-gray-500">
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, color: "#64748b" }}>
                   <span>CGST</span><span>₹{selectedOrder.cgst}</span>
                 </div>
               )}
               {Number(selectedOrder.sgst) > 0 && (
-                <div className="flex justify-between text-gray-500">
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, color: "#64748b" }}>
                   <span>SGST</span><span>₹{selectedOrder.sgst}</span>
                 </div>
               )}
-              <div className="flex justify-between font-bold text-lg pt-2 border-t border-gray-100">
+              <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 800, fontSize: 16, paddingTop: 10, borderTop: "2px solid #e2e8f0", marginTop: 6 }}>
                 <span>Total</span>
-                <span className="text-orange-500">₹{selectedOrder.grand_total}</span>
+                <span style={{ color: "#f97316" }}>₹{selectedOrder.grand_total}</span>
               </div>
             </div>
 
-            <button
-              onClick={() => setSelectedOrder(null)}
-              className="w-full mt-4 py-3 bg-gray-100 hover:bg-gray-200 rounded-xl text-sm font-medium transition"
-            >
+            <button onClick={() => setSelectedOrder(null)}
+              style={{ width: "100%", marginTop: 16, padding: "14px 0", background: "#f1f5f9", border: "none", borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: "pointer", color: "#374151" }}>
               Close
             </button>
           </div>

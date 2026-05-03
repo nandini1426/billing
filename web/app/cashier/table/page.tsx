@@ -2,7 +2,6 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import useAuthStore from "@/store/authStore";
-import useOrderStore from "@/store/orderStore";
 import api from "@/lib/api";
 import toast from "react-hot-toast";
 
@@ -13,260 +12,139 @@ interface Table {
   status: "available" | "occupied" | "reserved";
 }
 
-interface ExistingOrder {
-  id: string;
-  order_number: string;
-  grand_total: number;
-  items: any[];
-}
-
 export default function TableSelectionPage() {
   const router = useRouter();
   const { user, init } = useAuthStore();
-  const { addItem, addItemWithQty, clearOrder, updateQty } = useOrderStore();
   const [tables, setTables] = useState<Table[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selected, setSelected] = useState<Table | null>(null);
-  const [existingOrder, setExistingOrder] = useState<ExistingOrder | null>(null);
-  const [showOrderModal, setShowOrderModal] = useState(false);
+  const [pendingOrders, setPendingOrders] = useState<any[]>([]);
 
   useEffect(() => { init(); }, []);
   useEffect(() => { if (!user) router.push("/login"); }, [user]);
-  useEffect(() => { fetchTables(); }, []);
+
+  useEffect(() => {
+    fetchTables();
+    fetchPendingOrders();
+  }, []);
 
   const fetchTables = async () => {
     try {
       const res = await api.get("/tables");
       setTables(res.data);
-    } catch {
-      toast.error("Failed to load tables");
-    } finally {
-      setLoading(false);
-    }
+    } catch { toast.error("Failed to load tables"); }
+    finally { setLoading(false); }
   };
 
-  const handleTableClick = async (table: Table) => {
-  if (table.status === "reserved") {
-    toast.error(`Table ${table.label} is reserved`);
-    return;
-  }
-
-  if (table.status === "occupied") {
+  const fetchPendingOrders = async () => {
     try {
-      const res = await api.get(`/orders?order_type=table&status=pending`);
-      const order = res.data.find((o: any) => o.table_id === table.id);
-      if (order) {
-        setExistingOrder(order);
-        setSelected(table);
-        setShowOrderModal(true);
-      } else {
-        toast.error("Could not find existing order for this table");
+      const res = await api.get("/orders?status=pending");
+      setPendingOrders(res.data);
+    } catch { console.error("Failed to load pending orders"); }
+  };
+
+  const handleTableSelect = (table: Table) => {
+    if (table.status === "occupied") {
+      const existing = pendingOrders.find(o => o.table_id === table.id);
+      if (existing) {
+        const itemsParam = encodeURIComponent(JSON.stringify(existing.items));
+        router.push(
+          `/cashier/order?mode=table&tableId=${table.id}&tableLabel=${table.label}&orderId=${existing.id}&savedItems=${itemsParam}`
+        );
+        return;
       }
-    } catch {
-      toast.error("Failed to fetch existing order");
     }
-    return;
-  }
-
-  // Single click — just highlight
-  setSelected(table);
-};
-const handleTableDoubleClick = (table: Table) => {
-  if (table.status === "reserved") {
-    toast.error(`Table ${table.label} is reserved`);
-    return;
-  }
-  if (table.status === "occupied") return;
-
-  // Double click on available table — go directly to order
-  router.push(
-    `/cashier/order?mode=table&tableId=${table.id}&tableLabel=${table.label}`
-  );
-};
-
-  
-
-  const handleResumeOrder = async () => {
-  if (!existingOrder || !selected) return;
-  try {
-    const res = await api.get(`/orders/${existingOrder.id}`);
-    const order = res.data;
-
-    setShowOrderModal(false);
-    toast.success(`Resuming order ${order.order_number}`);
-
-    // Pass items as encoded URL param instead of store
-    const itemsParam = encodeURIComponent(JSON.stringify(order.items));
-
-    router.push(
-      `/cashier/order?mode=table&tableId=${selected.id}&tableLabel=${selected.label}&orderId=${existingOrder.id}&savedItems=${itemsParam}`
-    );
-  } catch (err) {
-    console.error("Resume error:", err);
-    toast.error("Failed to resume order");
-  }
-};
-
-  const handleCancelExisting = async () => {
-    if (!existingOrder) return;
-    try {
-      await api.delete(`/orders/${existingOrder.id}`);
-      toast.success("Previous order cancelled");
-      setShowOrderModal(false);
-      setExistingOrder(null);
-      fetchTables();
-    } catch {
-      toast.error("Failed to cancel order");
-    }
-  };
-
-  const getTableStyle = (table: Table) => {
-    if (table.status === "occupied")
-      return "bg-red-100 border-red-300 text-red-700";
-    if (table.status === "reserved")
-      return "bg-yellow-100 border-yellow-300 text-yellow-700 cursor-not-allowed";
-    if (selected?.id === table.id)
-      return "bg-orange-500 border-orange-500 text-white shadow-lg scale-105";
-    return "bg-white border-gray-200 text-gray-800 hover:border-orange-400 hover:shadow-md cursor-pointer";
+    router.push(`/cashier/order?mode=table&tableId=${table.id}&tableLabel=${table.label}`);
   };
 
   if (!user) return null;
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-50">
+  const available = tables.filter(t => t.status === "available").length;
+  const occupied  = tables.filter(t => t.status === "occupied").length;
 
-      <header className="bg-white border-b border-gray-100 shadow-sm">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => router.push("/cashier")}
-              className="text-gray-400 hover:text-gray-600 transition"
-            >
-              ← Back
-            </button>
-            <div className="w-px h-6 bg-gray-200" />
-            <h1 className="font-bold text-gray-900">Select Table</h1>
-          </div>
+  return (
+    <div style={{ minHeight: "100vh", background: "linear-gradient(135deg, #fff7ed 0%, #fef3c7 100%)" }}>
+
+      {/* Header */}
+      <header style={{
+        background: "#fff", borderBottom: "1px solid #e2e8f0",
+        padding: "0 16px", height: 70, display: "flex",
+        alignItems: "center", justifyContent: "space-between",
+        flexShrink: 0, position: "sticky", top: 0, zIndex: 10,
+        boxShadow: "0 1px 8px rgba(0,0,0,0.06)",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <button
-            onClick={fetchTables}
-            className="text-sm text-orange-500 hover:text-orange-600 font-medium"
-          >
-            🔄 Refresh
+            onClick={() => router.push("/cashier")}
+            style={{ background: "#f1f5f9", border: "none", cursor: "pointer", fontSize: 16, color: "#374151", padding: "10px 16px", borderRadius: 10, fontWeight: 700 }}>
+            ← Back
           </button>
+          <div>
+            <div style={{ fontWeight: 800, fontSize: 17, color: "#111827", lineHeight: 1.2 }}>🪑 Select Table</div>
+            <div style={{ fontSize: 11, color: "#94a3b8" }}>Tap a table to start order</div>
+          </div>
         </div>
+        <button onClick={() => { fetchTables(); fetchPendingOrders(); }}
+          style={{ background: "#fff7ed", border: "1px solid #fed7aa", borderRadius: 10, padding: "8px 14px", cursor: "pointer", fontSize: 16, color: "#ea580c" }}>
+          🔄
+        </button>
       </header>
 
-      <main className="max-w-4xl mx-auto px-6 py-10">
+      <main style={{ padding: "20px 16px", maxWidth: 600, margin: "0 auto" }}>
 
-        <div className="flex items-center gap-6 mb-8 justify-center flex-wrap">
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded bg-white border-2 border-gray-200" />
-            <span className="text-sm text-gray-600">Available</span>
+        {/* Stats */}
+        <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
+          <div style={{ flex: 1, background: "#fff", borderRadius: 14, padding: "14px 16px", border: "1px solid #f3f4f6", textAlign: "center" }}>
+            <div style={{ fontSize: 22, fontWeight: 800, color: "#16a34a" }}>{available}</div>
+            <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 2 }}>Available</div>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded bg-orange-500" />
-            <span className="text-sm text-gray-600">Selected</span>
+          <div style={{ flex: 1, background: "#fff", borderRadius: 14, padding: "14px 16px", border: "1px solid #f3f4f6", textAlign: "center" }}>
+            <div style={{ fontSize: 22, fontWeight: 800, color: "#ef4444" }}>{occupied}</div>
+            <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 2 }}>Occupied</div>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded bg-red-100 border-2 border-red-300" />
-            <span className="text-sm text-gray-600">Occupied — tap to edit</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded bg-yellow-100 border-2 border-yellow-300" />
-            <span className="text-sm text-gray-600">Reserved</span>
+          <div style={{ flex: 1, background: "#fff", borderRadius: 14, padding: "14px 16px", border: "1px solid #f3f4f6", textAlign: "center" }}>
+            <div style={{ fontSize: 22, fontWeight: 800, color: "#111827" }}>{tables.length}</div>
+            <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 2 }}>Total</div>
           </div>
         </div>
 
+        {/* Legend */}
+        <div style={{ display: "flex", gap: 16, marginBottom: 16, fontSize: 12, color: "#64748b" }}>
+          <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <div style={{ width: 14, height: 14, borderRadius: 4, background: "#fff", border: "2px solid #d1d5db" }} />
+            Available
+          </span>
+          <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <div style={{ width: 14, height: 14, borderRadius: 4, background: "#fee2e2", border: "2px solid #fca5a5" }} />
+            Occupied
+          </span>
+        </div>
+
+        {/* Tables grid */}
         {loading ? (
-          <div className="text-center py-20 text-gray-400">Loading tables...</div>
+          <div style={{ textAlign: "center", padding: 40, color: "#94a3b8" }}>Loading tables...</div>
         ) : (
-          <div className="grid grid-cols-5 gap-4 mb-10">
-            {tables.map((table) => (
-  <button
-    key={table.id}
-    onClick={() => handleTableClick(table)}
-    onDoubleClick={() => handleTableDoubleClick(table)}
-    className={`rounded-2xl border-2 p-6 transition-all duration-200 font-bold text-xl ${getTableStyle(table)}`}
-  >
-    <div className="text-2xl mb-1">🪑</div>
-    <div>{table.label}</div>
-    <div className="text-xs font-normal mt-1 opacity-70">
-      {table.capacity} seats
-    </div>
-    <div className="text-xs font-normal capitalize opacity-70">
-      {table.status === "occupied" ? "tap to edit" : table.status}
-    </div>
-  </button>
-))}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10 }}>
+            {tables.map(table => (
+              <button key={table.id}
+                onClick={() => handleTableSelect(table)}
+                style={{
+                  borderRadius: 14, border: "2px solid",
+                  padding: "14px 8px", cursor: "pointer",
+                  display: "flex", flexDirection: "column",
+                  alignItems: "center", gap: 4, transition: "all .15s",
+                  background: table.status === "occupied" ? "#fee2e2" : "#fff",
+                  borderColor: table.status === "occupied" ? "#fca5a5" : "#e2e8f0",
+                }}>
+                <span style={{ fontSize: 22 }}>🪑</span>
+                <span style={{ fontWeight: 800, fontSize: 14, color: "#111827" }}>{table.label}</span>
+                <span style={{ fontSize: 10, color: table.status === "occupied" ? "#ef4444" : "#94a3b8", fontWeight: 600 }}>
+                  {table.status === "occupied" ? "busy" : "free"}
+                </span>
+              </button>
+            ))}
           </div>
         )}
-
-        {/* Bottom hint */}
-<div className="bg-white rounded-2xl border border-gray-100 shadow-md p-4 text-center">
-  <p className="text-sm text-gray-400">
-    Double-click an available table to start billing · Click occupied table to edit
-  </p>
-</div>
       </main>
-
-      {/* OCCUPIED TABLE MODAL */}
-      {showOrderModal && existingOrder && selected && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl p-6 w-96 shadow-2xl">
-            <h3 className="text-lg font-bold text-gray-900 mb-1">
-              Table {selected.label} is Occupied
-            </h3>
-            <p className="text-sm text-gray-500 mb-4">
-              There is an existing saved order for this table.
-            </p>
-
-            <div className="bg-gray-50 rounded-xl p-4 mb-6">
-              <div className="flex justify-between text-sm mb-2">
-                <span className="text-gray-500">Order Number</span>
-                <span className="font-semibold">{existingOrder.order_number}</span>
-              </div>
-              <div className="flex justify-between text-sm mb-2">
-                <span className="text-gray-500">Items</span>
-                <span className="font-semibold">
-                  {existingOrder.items?.[0] !== null
-                    ? existingOrder.items?.length
-                    : 0} items
-                </span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Total</span>
-                <span className="font-bold text-orange-500">
-                  ₹{existingOrder.grand_total}
-                </span>
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-3">
-              <button
-                onClick={handleResumeOrder}
-                className="w-full py-3 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-xl transition"
-              >
-                ✏️ Edit / Continue This Order
-              </button>
-              <button
-                onClick={handleCancelExisting}
-                className="w-full py-3 bg-red-50 hover:bg-red-100 text-red-600 font-semibold rounded-xl transition"
-              >
-                🗑️ Cancel & Start Fresh
-              </button>
-              <button
-                onClick={() => {
-                  setShowOrderModal(false);
-                  setSelected(null);
-                }}
-                className="w-full py-3 bg-gray-50 hover:bg-gray-100 text-gray-600 rounded-xl transition"
-              >
-                Go Back
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
