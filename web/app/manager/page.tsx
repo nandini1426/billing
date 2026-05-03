@@ -144,7 +144,7 @@ export default function ManagerPage() {
       {/* Header */}
       <header style={{
         background: "#fff", borderBottom: "1px solid #e2e8f0",
-        padding: "0 16px", height: 54, display: "flex",
+        padding: "0 16px", height: 60, display: "flex",
         alignItems: "center", justifyContent: "space-between",
         flexShrink: 0, gap: 12,
       }}>
@@ -153,20 +153,61 @@ export default function ManagerPage() {
             onClick={() => view === "order"
               ? (setView("tables"), setSelectedTable(null), setOrderItems([]))
               : router.push("/dashboard")}
-            style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "#64748b", padding: "4px 8px" }}>
+            style={{
+              background: "#f1f5f9", border: "none", cursor: "pointer",
+              fontSize: 14, color: "#374151", padding: "8px 14px",
+              borderRadius: 10, fontWeight: 600,
+            }}>
             ← {view === "order" ? "Tables" : "Back"}
           </button>
-          <div style={{ fontWeight: 700, fontSize: 15, color: "#111827" }}>
+          <div style={{ fontWeight: 800, fontSize: 17, color: "#111827" }}>
             🧑‍💼 Manager
-            {selectedTable && <span style={{ color: "#f97316" }}> — {selectedTable.label}</span>}
+            {selectedTable && (
+              <span style={{ color: "#f97316", fontSize: 15 }}> — {selectedTable.label}</span>
+            )}
           </div>
         </div>
+
+        {/* Right side */}
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <button onClick={() => { fetchTables(); fetchPendingOrders(); }}
-            style={{ background: "#fff7ed", border: "1px solid #fed7aa", borderRadius: 8, padding: "6px 10px", cursor: "pointer", fontSize: 12, color: "#ea580c", fontWeight: 600 }}>
+          <button
+            onClick={() => { fetchTables(); fetchPendingOrders(); }}
+            style={{
+              background: "#fff7ed", border: "1px solid #fed7aa",
+              borderRadius: 10, padding: "8px 12px",
+              cursor: "pointer", fontSize: 16, color: "#ea580c",
+            }}>
             🔄
           </button>
-          <LogoutButton />
+          {/* User info */}
+          <div style={{ textAlign: "right" }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#111827", lineHeight: 1.2 }}>
+              {user?.username}
+            </div>
+            <div style={{ fontSize: 11, color: "#f97316", fontWeight: 600, textTransform: "capitalize" }}>
+              {user?.role}
+            </div>
+          </div>
+          {/* Logout button */}
+          <button
+            onClick={() => {
+              localStorage.removeItem('token');
+              localStorage.removeItem('user');
+              router.push('/login');
+            }}
+            title="Logout"
+            style={{
+              width: 40, height: 40, borderRadius: "50%",
+              background: "#fee2e2", border: "none", cursor: "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              flexShrink: 0,
+            }}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+              <polyline points="16 17 21 12 16 7"/>
+              <line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
+          </button>
         </div>
       </header>
 
