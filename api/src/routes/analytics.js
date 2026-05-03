@@ -7,13 +7,8 @@ const router = express.Router();
 // ── SUMMARY ───────────────────────────────────────────────────
 router.get('/summary', authMiddleware, async (req, res) => {
   const { period = 'today' } = req.query;
-  const intervals = {
-    today: '1 day',
-    week:  '7 days',
-    month: '30 days'
-  };
+  const intervals = { today: '1 day', week: '7 days', month: '30 days' };
   const interval = intervals[period] || '1 day';
-
   try {
     const { rows } = await db.query(`
       SELECT
@@ -29,14 +24,11 @@ router.get('/summary', authMiddleware, async (req, res) => {
         AND restaurant_id = $1
         AND created_at > NOW() - INTERVAL '${interval}'
     `, [req.user.restaurant_id]);
-
     res.json(rows[0]);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// ── DAILY SALES ───────────────────────────────────────────────
+// ── DAILY SALES ────────────────────────────────────────────────
 router.get('/daily', authMiddleware, async (req, res) => {
   const days = parseInt(req.query.days) || 30;
   try {
@@ -52,23 +44,15 @@ router.get('/daily', authMiddleware, async (req, res) => {
       GROUP BY date
       ORDER BY date ASC
     `, [req.user.restaurant_id]);
-
     res.json(rows);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// ── CATEGORY SALES ────────────────────────────────────────────
+// ── CATEGORY SALES ─────────────────────────────────────────────
 router.get('/categories', authMiddleware, async (req, res) => {
   const { period = 'month' } = req.query;
-  const intervals = {
-    today: '1 day',
-    week:  '7 days',
-    month: '30 days'
-  };
+  const intervals = { today: '1 day', week: '7 days', month: '30 days' };
   const interval = intervals[period] || '30 days';
-
   try {
     const { rows } = await db.query(`
       SELECT
@@ -85,23 +69,15 @@ router.get('/categories', authMiddleware, async (req, res) => {
       GROUP BY c.name
       ORDER BY revenue DESC
     `, [req.user.restaurant_id]);
-
     res.json(rows);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// ── TOP ITEMS ─────────────────────────────────────────────────
+// ── TOP ITEMS ──────────────────────────────────────────────────
 router.get('/top-items', authMiddleware, async (req, res) => {
   const { period = 'month' } = req.query;
-  const intervals = {
-    today: '1 day',
-    week:  '7 days',
-    month: '30 days'
-  };
+  const intervals = { today: '1 day', week: '7 days', month: '30 days' };
   const interval = intervals[period] || '30 days';
-
   try {
     const { rows } = await db.query(`
       SELECT
@@ -118,13 +94,33 @@ router.get('/top-items', authMiddleware, async (req, res) => {
         AND o.created_at > NOW() - INTERVAL '${interval}'
       GROUP BY m.name, c.name
       ORDER BY qty_sold DESC
-      LIMIT 10
     `, [req.user.restaurant_id]);
-
     res.json(rows);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ── DAY OF WEEK ────────────────────────────────────────────────
+router.get('/day-of-week', authMiddleware, async (req, res) => {
+  const { period = 'month' } = req.query;
+  const intervals = { today: '1 day', week: '7 days', month: '30 days' };
+  const interval = intervals[period] || '30 days';
+  try {
+    const { rows } = await db.query(`
+      SELECT
+        TO_CHAR(created_at, 'Day')    AS day_name,
+        EXTRACT(DOW FROM created_at)  AS day_num,
+        COUNT(*)                      AS orders,
+        COALESCE(SUM(grand_total), 0) AS revenue,
+        COALESCE(AVG(grand_total), 0) AS avg_bill
+      FROM orders
+      WHERE status = 'completed'
+        AND restaurant_id = $1
+        AND created_at > NOW() - INTERVAL '${interval}'
+      GROUP BY day_name, day_num
+      ORDER BY day_num ASC
+    `, [req.user.restaurant_id]);
+    res.json(rows);
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 module.exports = router;

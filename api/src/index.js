@@ -64,7 +64,7 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 500 }));
-
+app.use('/api/analytics', analyticsRoutes);
 // ── Health check ──────────────────────────────────────────────
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', time: new Date() });
