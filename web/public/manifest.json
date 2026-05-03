@@ -3,10 +3,13 @@
   "short_name": "BillEase",
   "description": "Smart restaurant billing and POS system",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
+  "display_override": ["standalone", "fullscreen", "minimal-ui"],
+  "background_color": "#f97316",
   "theme_color": "#f97316",
   "orientation": "any",
+  "lang": "en",
   "icons": [
     {
       "src": "/icons/icon-72x72.png",
@@ -57,21 +60,6 @@
       "purpose": "maskable any"
     }
   ],
-  "screenshots": [
-    {
-      "src": "/icons/screenshot-wide.png",
-      "sizes": "1280x720",
-      "type": "image/png",
-      "form_factor": "wide"
-    },
-    {
-      "src": "/icons/screenshot-mobile.png",
-      "sizes": "390x844",
-      "type": "image/png",
-      "form_factor": "narrow"
-    }
-  ],
-  "categories": ["business", "productivity"],
   "shortcuts": [
     {
       "name": "New Order",
