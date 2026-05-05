@@ -122,26 +122,29 @@ router.get('/day-of-week', authMiddleware, async (req, res) => {
     res.json(rows);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
-// ── AI SUGGESTIONS ─────────────────────────────────────────────
+// ── AI SUGGESTIONS via Groq (Free) ────────────────────────────
 router.post('/ai-suggestions', authMiddleware, async (req, res) => {
   const { messages, system } = req.body;
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': process.env.ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
+        'Authorization': `Bearer ${process.env.ANTHROPIC_API_KEY}`,
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'llama-3.3-70b-versatile',
         max_tokens: 1500,
-        system,
-        messages,
+        messages: [
+          { role: 'system', content: system },
+          ...messages,
+        ],
       }),
     });
     const data = await response.json();
-    res.json(data);
+    // Convert Groq response to Anthropic format
+    const text = data.choices?.[0]?.message?.content || "Unable to generate suggestions.";
+    res.json({ content: [{ text }] });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

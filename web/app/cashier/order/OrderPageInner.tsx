@@ -246,13 +246,21 @@ export default function OrderPageInner() {
     toast.success("Undone");
   };
 
-  const handleCancel = () => {
-    if (window.confirm("Cancel this order?")) {
-      clearOrder();
-      if (mode === "table") router.push("/cashier/table");
-      else router.push("/cashier");
+  const handleCancel = async () => {
+  if (window.confirm("Cancel this order?")) {
+    if (savedId) {
+      try {
+        await api.delete(`/orders/${savedId}`);
+        toast.success("Order cancelled");
+      } catch (err: any) {
+        toast.error(err.error || "Failed to cancel order");
+      }
     }
-  };
+    clearOrder();
+    if (mode === "table") router.push("/cashier/table");
+    else router.push("/cashier");
+  }
+};
 
   const handleSelectCustomer = (c: Customer) => {
     setCustomerName(c.customer_name);
@@ -314,39 +322,32 @@ export default function OrderPageInner() {
   };
 
   const handleSupportSend = async () => {
-    if (!supportMsg.trim()) return;
-    const userMsg = supportMsg.trim();
-    setSupportMsg("");
-    setSupportChat(prev => [...prev, { role: "user", text: userMsg }]);
-    setSupportLoading(true);
-    try {
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 1000,
-          system: `You are a helpful support assistant for BillEase, a restaurant billing software.
+  if (!supportMsg.trim()) return;
+  const userMsg = supportMsg.trim();
+  setSupportMsg("");
+  setSupportChat(prev => [...prev, { role: "user", text: userMsg }]);
+  setSupportLoading(true);
+  try {
+    const res = await api.post('/analytics/ai-suggestions', {
+      system: `You are a helpful support assistant for BillEase, a restaurant billing software.
 Help users with billing issues, technical problems, and how to use features.
 Be concise, friendly and helpful. Answer in 2-3 sentences max.
 If the issue cannot be resolved via chat, tell them to contact support@billease.in or call +91-9999999999.
 Restaurant name: ${restaurantSettings.name}`,
-          messages: [
-            ...supportChat.map(m => ({ role: m.role as "user" | "assistant", content: m.text })),
-            { role: "user" as const, content: userMsg }
-          ],
-        })
-      });
-      const data = await response.json();
-      const reply = data.content?.[0]?.text || "Sorry, I could not process your request.";
-      setSupportChat(prev => [...prev, { role: "assistant", text: reply }]);
-    } catch {
-      setSupportChat(prev => [...prev, {
-        role: "assistant",
-        text: "Sorry, support is temporarily unavailable. Please contact support@billease.in or call +91-9999999999"
-      }]);
-    } finally { setSupportLoading(false); }
-  };
+      messages: [
+        ...supportChat.map(m => ({ role: m.role as "user" | "assistant", content: m.text })),
+        { role: "user" as const, content: userMsg }
+      ],
+    });
+    const reply = res.data.content?.[0]?.text || "Sorry, I could not process your request.";
+    setSupportChat(prev => [...prev, { role: "assistant", text: reply }]);
+  } catch {
+    setSupportChat(prev => [...prev, {
+      role: "assistant",
+      text: "Sorry, support is temporarily unavailable. Please contact support@billease.in"
+    }]);
+  } finally { setSupportLoading(false); }
+};
 
   if (!user) return null;
 
