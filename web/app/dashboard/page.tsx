@@ -61,6 +61,11 @@ export default function DashboardPage() {
       desc: "Restaurant info, GSTIN, UPI, cashiers",
       icon: "🔧", bg: "#f9fafb", iconBg: "#e5e7eb", textColor: "#374151", route: "/settings",
     }] : []),
+    ...(isAdmin ? [{
+  title: "Inventory",
+  desc: "Track ingredients, stock levels and waste",
+  icon: "📦", bg: "#f0fdf4", iconBg: "#bbf7d0", textColor: "#16a34a", route: "/inventory",
+}] : []),
   ];
 
   return (
