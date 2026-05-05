@@ -49,7 +49,7 @@ router.post('/', authMiddleware, async (req, res) => {
     const enriched = items.map(item => {
       const unitPrice = priceMap[item.menu_item_id];
       if (!unitPrice) throw new Error(`Item ${item.menu_item_id} not found`);
-      const lineTotal = round2(unitPrice * item.quantity);
+      const lineTotal = Math.round(unitPrice * item.quantity * 100) / 100;
       subtotal += lineTotal;
       return { ...item, unit_price: unitPrice, line_total: lineTotal };
     });
@@ -57,9 +57,9 @@ router.post('/', authMiddleware, async (req, res) => {
     const afterDiscount = subtotal
       - parseFloat(discount_fixed)
       - (subtotal * parseFloat(discount_pct) / 100);
-    const cgstAmt  = round2(afterDiscount * cgst / 100);
-    const sgstAmt  = round2(afterDiscount * sgst / 100);
-    const grandTotal = roundTotal(
+    const cgstAmt  = Math.round(afterDiscount * cgst / 100 * 100) / 100;
+    const sgstAmt  = Math.round(afterDiscount * sgst / 100 * 100) / 100;
+    const grandTotal = Math.ceil(
       afterDiscount + cgstAmt + sgstAmt + parseFloat(delivery_fee)
     );
 
@@ -74,7 +74,7 @@ router.post('/', authMiddleware, async (req, res) => {
        VALUES ($1,$2,$3,$4,'pending',$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
        RETURNING *`,
       [orderNumber, req.user.id, table_id || null, order_type,
-       round2(subtotal), cgstAmt, sgstAmt,
+       Math.round(subtotal * 100) / 100, cgstAmt, sgstAmt,
        discount_pct, discount_fixed, delivery_fee, grandTotal,
        customer_name, customer_phone, req.user.restaurant_id]
     );
@@ -98,6 +98,30 @@ router.post('/', authMiddleware, async (req, res) => {
     }
 
     await client.query('COMMIT');
+
+    // ── Auto deduct inventory stock ──────────────────────────
+    try {
+      for (const oi of enriched) {
+        const { rows: recipe } = await db.query(`
+          SELECT ri.ingredient_id, ri.quantity_used
+          FROM recipe_items ri
+          WHERE ri.menu_item_id = $1 AND ri.restaurant_id = $2
+        `, [oi.menu_item_id, req.user.restaurant_id]);
+
+        for (const r of recipe) {
+          const totalUsed = Number(r.quantity_used) * Number(oi.quantity);
+          await db.query(`
+            UPDATE ingredients
+            SET current_stock = GREATEST(current_stock - $1, 0),
+                updated_at = NOW()
+            WHERE id = $2 AND restaurant_id = $3
+          `, [totalUsed, r.ingredient_id, req.user.restaurant_id]);
+        }
+      }
+    } catch (invErr) {
+      console.error('Inventory deduction error:', invErr.message);
+    }
+
     req.app.get('io').emit(`order:new:${req.user.restaurant_id}`, { order, items: enriched });
     res.status(201).json({ order, items: enriched });
   } catch (err) {
@@ -107,37 +131,6 @@ router.post('/', authMiddleware, async (req, res) => {
     client.release();
   }
 });
-// Auto deduct inventory stock
-try {
-  const { rows: recipe_check } = await client.query(
-    'SELECT COUNT(*) FROM recipe_items WHERE restaurant_id=$1',
-    [req.user.restaurant_id]
-  );
-  if (parseInt(recipe_check[0].count) > 0) {
-    const orderItemsList = enriched.map(i => ({
-      menu_item_id: i.menu_item_id,
-      quantity: i.quantity
-    }));
-    for (const oi of orderItemsList) {
-      const { rows: recipe } = await db.query(`
-        SELECT ri.ingredient_id, ri.quantity_used
-        FROM recipe_items ri
-        WHERE ri.menu_item_id = $1 AND ri.restaurant_id = $2
-      `, [oi.menu_item_id, req.user.restaurant_id]);
-      for (const r of recipe) {
-        const totalUsed = Number(r.quantity_used) * Number(oi.quantity);
-        await db.query(`
-          UPDATE ingredients
-          SET current_stock = GREATEST(current_stock - $1, 0),
-              updated_at = NOW()
-          WHERE id = $2 AND restaurant_id = $3
-        `, [totalUsed, r.ingredient_id, req.user.restaurant_id]);
-      }
-    }
-  }
-} catch (invErr) {
-  console.error('Inventory deduction error:', invErr.message);
-}
 
 // ── GET ALL ORDERS ────────────────────────────────────────────
 router.get('/', authMiddleware, async (req, res) => {
