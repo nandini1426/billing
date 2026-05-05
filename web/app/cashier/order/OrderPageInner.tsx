@@ -667,43 +667,26 @@ Restaurant name: ${restaurantSettings.name}`,
 
           {/* Totals + Actions */}
           <div style={{ padding: "12px 14px", borderTop: "1px solid #e2e8f0", background: "#f8fafc" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
-              <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, cursor: "pointer", color: "#374151", whiteSpace: "nowrap" }}>
-                <input type="checkbox" checked={gstEnabled} onChange={e => setGstEnabled(e.target.checked)} />
-                GST 5%
-              </label>
-              <input type="number" min={0} max={100} placeholder="% disc" value={discountPct || ""}
-                onChange={e => setDiscountPct(Number(e.target.value))}
-                style={{ flex: 1, border: "1px solid #e2e8f0", borderRadius: 6, padding: "5px 8px", fontSize: 12, textAlign: "center", outline: "none" }} />
-              <input type="number" min={0} placeholder="₹ disc" value={discountFixed || ""}
-                onChange={e => setDiscountFixed(Number(e.target.value))}
-                style={{ flex: 1, border: "1px solid #e2e8f0", borderRadius: 6, padding: "5px 8px", fontSize: 12, textAlign: "center", outline: "none" }} />
-            </div>
 
+            {/* Bill totals */}
             <div style={{ display: "flex", flexDirection: "column", gap: 5, marginBottom: 12 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#64748b" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "#64748b" }}>
                 <span>Subtotal</span><span>₹{bill.subtotal}</span>
               </div>
-              {gstEnabled && <>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#64748b" }}>
-                  <span>CGST (2.5%)</span><span>₹{bill.cgst}</span>
+              {gstEnabled && (
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "#64748b" }}>
+                  <span>GST (CGST 2.5% + SGST 2.5%)</span><span>₹{Math.round((bill.cgst + bill.sgst) * 100) / 100}</span>
                 </div>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#64748b" }}>
-                  <span>SGST (2.5%)</span><span>₹{bill.sgst}</span>
-                </div>
-              </>}
+              )}
               {(discountPct > 0 || discountFixed > 0) && (
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#16a34a" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "#16a34a" }}>
                   <span>Discount</span>
                   <span>−₹{Math.round((bill.subtotal - bill.afterDiscount) * 100) / 100}</span>
                 </div>
               )}
               {mode === "delivery" && (
-                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <span style={{ fontSize: 12, color: "#64748b" }}>Delivery ₹</span>
-                  <input type="number" min={0} value={deliveryFee}
-                    onChange={e => setDeliveryFee(Number(e.target.value))}
-                    style={{ flex: 1, border: "1px solid #e2e8f0", borderRadius: 6, padding: "4px 8px", fontSize: 12, outline: "none" }} />
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "#64748b" }}>
+                  <span>Delivery Fee</span><span>₹{deliveryFee}</span>
                 </div>
               )}
               <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 800, fontSize: 20, color: "#1e293b", paddingTop: 8, borderTop: "2px solid #1e293b", marginTop: 4 }}>
@@ -712,36 +695,77 @@ Restaurant name: ${restaurantSettings.name}`,
               </div>
             </div>
 
+            {/* GST toggle */}
+            <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, cursor: "pointer", color: "#374151", marginBottom: 8 }}>
+              <input type="checkbox" checked={gstEnabled} onChange={e => setGstEnabled(e.target.checked)} />
+              Add GST (CGST 2.5% + SGST 2.5%)
+            </label>
+
+            {/* Discount row */}
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+              <span style={{ fontSize: 12, color: "#374151", fontWeight: 600, whiteSpace: "nowrap" }}>Discount:</span>
+              <div style={{ flex: 1, position: "relative" }}>
+                <input
+                  type="number" min={0} max={100}
+                  placeholder="0"
+                  value={discountPct || ""}
+                  onChange={e => setDiscountPct(Number(e.target.value))}
+                  style={{ width: "100%", border: "1.5px solid #e2e8f0", borderRadius: 8, padding: "6px 28px 6px 8px", fontSize: 13, outline: "none", background: "#fff" }}
+                />
+                <span style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", fontSize: 11, color: "#94a3b8", fontWeight: 700 }}>%</span>
+              </div>
+              <div style={{ flex: 1, position: "relative" }}>
+                <input
+                  type="number" min={0}
+                  placeholder="0"
+                  value={discountFixed || ""}
+                  onChange={e => setDiscountFixed(Number(e.target.value))}
+                  style={{ width: "100%", border: "1.5px solid #e2e8f0", borderRadius: 8, padding: "6px 28px 6px 8px", fontSize: 13, outline: "none", background: "#fff" }}
+                />
+                <span style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", fontSize: 11, color: "#94a3b8", fontWeight: 700 }}>₹</span>
+              </div>
+            </div>
+
+            {/* Delivery fee */}
+            {mode === "delivery" && (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                <span style={{ fontSize: 12, color: "#374151", fontWeight: 600, whiteSpace: "nowrap" }}>Delivery ₹:</span>
+                <input type="number" min={0} value={deliveryFee}
+                  onChange={e => setDeliveryFee(Number(e.target.value))}
+                  style={{ flex: 1, border: "1.5px solid #e2e8f0", borderRadius: 8, padding: "6px 8px", fontSize: 13, outline: "none", background: "#fff" }} />
+              </div>
+            )}
+
+            {/* Action buttons — Save & Save+Print only */}
             <div style={{ display: "flex", gap: 6, marginBottom: 6 }}>
               <button onClick={handleSave} disabled={saving}
-                style={{ flex: 1, padding: "9px 0", borderRadius: 8, border: "none", background: "#f59e0b", color: "#fff", fontWeight: 700, cursor: "pointer", fontSize: 13 }}>
-                {saving ? "..." : "💾 Save"}
+                style={{ flex: 1, padding: "11px 0", borderRadius: 10, border: "none", background: "#f59e0b", color: "#fff", fontWeight: 700, cursor: saving ? "not-allowed" : "pointer", fontSize: 14 }}>
+                {saving ? "Saving..." : "💾 Save"}
               </button>
-              <button onClick={() => setShowReceipt(true)}
-                style={{ flex: 1, padding: "9px 0", borderRadius: 8, border: "1px solid #e2e8f0", background: "#fff", fontWeight: 700, cursor: "pointer", fontSize: 13, color: "#374151" }}>
-                🖨️ Print
+              <button onClick={handleSaveAndPrint} disabled={saving}
+                style={{ flex: 1, padding: "11px 0", borderRadius: 10, border: "none", background: "#16a34a", color: "#fff", fontWeight: 700, cursor: saving ? "not-allowed" : "pointer", fontSize: 14 }}>
+                {saving ? "..." : "✅ Save & Print"}
               </button>
             </div>
-            <button onClick={handleSaveAndPrint} disabled={saving}
-              style={{ width: "100%", padding: "10px 0", borderRadius: 8, border: "none", background: "#16a34a", color: "#fff", fontWeight: 700, cursor: "pointer", fontSize: 14, marginBottom: 6 }}>
-              ✅ Save & Print
-            </button>
+
+            {/* Undo + Cancel */}
             <div style={{ display: "flex", gap: 6 }}>
               <button onClick={handleUndo}
-                style={{ flex: 1, padding: "7px 0", borderRadius: 8, border: "1px solid #e2e8f0", background: "#f8fafc", cursor: "pointer", fontSize: 12, color: "#374151" }}>
+                style={{ flex: 1, padding: "8px 0", borderRadius: 10, border: "1px solid #e2e8f0", background: "#f8fafc", cursor: "pointer", fontSize: 13, color: "#374151", fontWeight: 600 }}>
                 ↩ Undo
               </button>
               <button onClick={handleCancel}
-                style={{ flex: 1, padding: "7px 0", borderRadius: 8, border: "none", background: "#fee2e2", color: "#dc2626", fontWeight: 700, cursor: "pointer", fontSize: 12 }}>
+                style={{ flex: 1, padding: "8px 0", borderRadius: 10, border: "none", background: "#fee2e2", color: "#dc2626", fontWeight: 700, cursor: "pointer", fontSize: 13 }}>
                 ✕ Cancel
               </button>
             </div>
             <p style={{ fontSize: 10, color: "#cbd5e1", textAlign: "center", marginTop: 6 }}>
               Ctrl+S Save · Ctrl+P Print · Ctrl+Z Undo
-            </p>
+             </p>
           </div>
         </aside>
       </div>
+
 
       {/* ── RECEIPT MODAL ──────────────────────────────────── */}
       {showReceipt && (
