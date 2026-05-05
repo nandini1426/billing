@@ -243,30 +243,55 @@ router.post('/:id/print', authMiddleware, async (req, res) => {
 
 // ── CANCEL ORDER ──────────────────────────────────────────────
 router.delete('/:id', authMiddleware, async (req, res) => {
+  const client = await db.connect();
   try {
-    const { rows: [order] } = await db.query(
+    await client.query('BEGIN');
+
+    const { rows: [order] } = await client.query(
       'SELECT * FROM orders WHERE id=$1 AND restaurant_id=$2',
       [req.params.id, req.user.restaurant_id]
     );
-    if (!order) return res.status(404).json({ error: 'Order not found' });
-    if (order.is_printed)
-      return res.status(400).json({ error: 'Cannot cancel a printed order' });
 
-    await db.query(
+    if (!order) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
+    if (order.is_printed) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'Cannot cancel a printed order' });
+    }
+
+    // Cancel the order
+    await client.query(
       `UPDATE orders SET status='cancelled', updated_at=NOW() WHERE id=$1`,
       [req.params.id]
     );
+
+    // Always free the table if it has one
     if (order.table_id) {
-      await db.query(
+      await client.query(
         `UPDATE tables SET status='available'
          WHERE id=$1 AND restaurant_id=$2`,
         [order.table_id, req.user.restaurant_id]
       );
+      console.log(`✅ Table freed for order ${req.params.id}`);
     }
-    req.app.get('io').emit(`order:cancelled:${req.user.restaurant_id}`, { orderId: req.params.id });
-    res.json({ message: 'Order cancelled' });
+
+    await client.query('COMMIT');
+
+    req.app.get('io').emit(
+      `order:cancelled:${req.user.restaurant_id}`,
+      { orderId: req.params.id }
+    );
+
+    res.json({ message: 'Order cancelled and table freed' });
   } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Cancel order error:', err.message);
     res.status(500).json({ error: err.message });
+  } finally {
+    client.release();
   }
 });
 

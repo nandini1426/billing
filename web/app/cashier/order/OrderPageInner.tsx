@@ -246,20 +246,28 @@ export default function OrderPageInner() {
     toast.success("Undone");
   };
 
-  const handleCancel = async () => {
-  if (window.confirm("Cancel this order?")) {
+ const handleCancel = async () => {
+  if (!window.confirm("Cancel this order?")) return;
+  
+  try {
+    // If order was saved, cancel it via API and free the table
     if (savedId) {
-      try {
-        await api.delete(`/orders/${savedId}`);
-        toast.success("Order cancelled");
-      } catch (err: any) {
-        toast.error(err.error || "Failed to cancel order");
-      }
+      await api.delete(`/orders/${savedId}`);
+      toast.success("Order cancelled and table freed");
+    } else {
+      toast.success("Order cleared");
     }
-    clearOrder();
-    if (mode === "table") router.push("/cashier/table");
-    else router.push("/cashier");
+  } catch (err: any) {
+    // Even if API fails, still clear local order
+    console.error("Cancel error:", err);
   }
+  
+  clearOrder();
+  setSavedId(null);
+  setOrderNumber("");
+  
+  if (mode === "table") router.push("/cashier/table");
+  else router.push("/cashier");
 };
 
   const handleSelectCustomer = (c: Customer) => {
@@ -358,7 +366,11 @@ Restaurant name: ${restaurantSettings.name}`,
       <header style={{ background: "#1e293b", padding: "0 12px", display: "flex", alignItems: "center", gap: 8, height: 70, flexShrink: 0, overflow: "hidden" }}>
 
         <button
-          onClick={() => { if (mode === "table") router.push("/cashier/table"); else router.push("/cashier"); }}
+  onClick={() => {
+    clearOrder();
+    if (mode === "table") router.push("/cashier/table");
+    else router.push("/cashier");
+  }}
           style={{ background: "none", border: "1px solid #334155", borderRadius: 8, padding: "8px 14px", cursor: "pointer", fontSize: 14, color: "#94a3b8", flexShrink: 0, fontWeight: 700 }}>
           ← Back
         </button>
