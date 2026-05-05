@@ -78,6 +78,7 @@ const orderRoutes      = require('./routes/orders');
 const analyticsRoutes  = require('./routes/analytics');
 const settingsRoutes   = require('./routes/settings');
 const restaurantRoutes = require('./routes/restaurants');
+const inventoryRoutes  = require('./routes/inventory');
 
 app.use('/api/auth',        authRoutes);
 app.use('/api/menu',        menuRoutes);
@@ -86,6 +87,7 @@ app.use('/api/orders',      orderRoutes);
 app.use('/api/analytics',   analyticsRoutes);
 app.use('/api/settings',    settingsRoutes);
 app.use('/api/restaurants', restaurantRoutes);
+app.use('/api/inventory', inventoryRoutes);
 
 console.log('✅ All routes loaded');
 

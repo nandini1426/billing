@@ -107,6 +107,37 @@ router.post('/', authMiddleware, async (req, res) => {
     client.release();
   }
 });
+// Auto deduct inventory stock
+try {
+  const { rows: recipe_check } = await client.query(
+    'SELECT COUNT(*) FROM recipe_items WHERE restaurant_id=$1',
+    [req.user.restaurant_id]
+  );
+  if (parseInt(recipe_check[0].count) > 0) {
+    const orderItemsList = enriched.map(i => ({
+      menu_item_id: i.menu_item_id,
+      quantity: i.quantity
+    }));
+    for (const oi of orderItemsList) {
+      const { rows: recipe } = await db.query(`
+        SELECT ri.ingredient_id, ri.quantity_used
+        FROM recipe_items ri
+        WHERE ri.menu_item_id = $1 AND ri.restaurant_id = $2
+      `, [oi.menu_item_id, req.user.restaurant_id]);
+      for (const r of recipe) {
+        const totalUsed = Number(r.quantity_used) * Number(oi.quantity);
+        await db.query(`
+          UPDATE ingredients
+          SET current_stock = GREATEST(current_stock - $1, 0),
+              updated_at = NOW()
+          WHERE id = $2 AND restaurant_id = $3
+        `, [totalUsed, r.ingredient_id, req.user.restaurant_id]);
+      }
+    }
+  }
+} catch (invErr) {
+  console.error('Inventory deduction error:', invErr.message);
+}
 
 // ── GET ALL ORDERS ────────────────────────────────────────────
 router.get('/', authMiddleware, async (req, res) => {
