@@ -15,7 +15,7 @@ async function nextOrderNumber(restaurant_id) {
   return String(rows[0].next);
 }
 
-const roundTotal = (n) => Math.round(n);
+const roundTotal = (n) => Math.ceil(n);
 const round2 = (n) => Math.round(n * 100) / 100;
 
 // ── CREATE ORDER ──────────────────────────────────────────────

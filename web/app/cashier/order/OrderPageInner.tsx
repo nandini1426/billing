@@ -182,8 +182,8 @@ export default function OrderPageInner() {
   const bill = calcBill(discountPct, discountFixed, gstEnabled, deliveryFee);
   const serviceChargeAmt = restaurantSettings.service_charge > 0
     ? Math.round(bill.afterDiscount * restaurantSettings.service_charge / 100 * 100) / 100 : 0;
-  const rawRoundOff = bill.grandTotal - (bill.afterDiscount + serviceChargeAmt + bill.cgst + bill.sgst);
-  const roundOff = Math.abs(rawRoundOff);
+  const beforeRound = bill.afterDiscount + serviceChargeAmt + bill.cgst + bill.sgst;
+const roundOff = Math.ceil(beforeRound) - beforeRound;
 
   const displayedItems = searchQuery.trim()
     ? allItems.filter(item => item.name.toLowerCase().includes(searchQuery.toLowerCase()))

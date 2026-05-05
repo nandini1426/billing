@@ -95,8 +95,8 @@ const useOrderStore = create<OrderStore>((set, get) => ({
       ? Math.round(afterPct * 0.025 * 100) / 100 : 0;
     const sgst       = gstEnabled
       ? Math.round(afterPct * 0.025 * 100) / 100 : 0;
-    const grandTotal = Math.round(
-      afterPct + cgst + sgst + Number(deliveryFee)
+    const grandTotal = Math.ceil(
+      afterPct + cgst + sgst + deliveryFee
     );
     return {
       subtotal:      Math.round(subtotal * 100) / 100,
