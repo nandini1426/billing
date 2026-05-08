@@ -318,7 +318,50 @@ router.delete('/:id', authMiddleware, async (req, res) => {
     client.release();
   }
 });
+// ── PUBLIC BILL VIEW (no auth needed) ─────────────────────────
+router.get('/public/:id', async (req, res) => {
+  try {
+    const { rows } = await db.query(
+      `SELECT o.*,
+        json_agg(json_build_object(
+          'item_id',    oi.menu_item_id,
+          'name',       m.name,
+          'quantity',   oi.quantity,
+          'unit_price', oi.unit_price,
+          'line_total', oi.line_total
+        )) AS items
+       FROM orders o
+       LEFT JOIN order_items oi ON oi.order_id = o.id
+       LEFT JOIN menu_items m   ON m.id = oi.menu_item_id
+       WHERE o.id=$1
+       GROUP BY o.id`,
+      [req.params.id]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'Bill not found' });
+    res.json(rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
+// ── PUBLIC RESTAURANT SETTINGS ────────────────────────────────
+router.get('/public/:id/settings', async (req, res) => {
+  try {
+    const { rows: [order] } = await db.query(
+      'SELECT restaurant_id FROM orders WHERE id=$1',
+      [req.params.id]
+    );
+    if (!order) return res.status(404).json({ error: 'Not found' });
+
+    const { rows: [settings] } = await db.query(
+      'SELECT * FROM restaurant_settings WHERE restaurant_id=$1',
+      [order.restaurant_id]
+    );
+    res.json(settings || {});
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 // ── SEARCH CUSTOMERS ──────────────────────────────────────────
 router.get('/customers/search', authMiddleware, async (req, res) => {
   const { q } = req.query;

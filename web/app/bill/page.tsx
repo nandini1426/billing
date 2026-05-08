@@ -1,15 +1,16 @@
 "use client";
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import api from "@/lib/api";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 
 function BillContent() {
-  const params = useSearchParams();
+  const params  = useSearchParams();
   const orderId = params.get("id");
-  const [order, setOrder] = useState<any>(null);
+  const [order,    setOrder]    = useState<any>(null);
   const [settings, setSettings] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [loading,  setLoading]  = useState(true);
+  const [error,    setError]    = useState("");
 
   useEffect(() => {
     if (!orderId) { setError("Invalid bill link"); setLoading(false); return; }
@@ -19,42 +20,18 @@ function BillContent() {
   const fetchBill = async () => {
     try {
       const [orderRes, settingsRes] = await Promise.all([
-        api.get(`/orders/${orderId}`),
-        api.get("/settings"),
+        fetch(`${API_URL}/orders/public/${orderId}`),
+        fetch(`${API_URL}/orders/public/${orderId}/settings`),
       ]);
-      setOrder(orderRes.data);
-      setSettings(settingsRes.data);
+      if (!orderRes.ok) { setError("Bill not found"); setLoading(false); return; }
+      const orderData    = await orderRes.json();
+      const settingsData = await settingsRes.json();
+      setOrder(orderData);
+      setSettings(settingsData);
     } catch {
-      setError("Bill not found");
-    } finally {
-      setLoading(false);
-    }
+      setError("Failed to load bill");
+    } finally { setLoading(false); }
   };
-
-  if (loading) return (
-    <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh" }}>
-      <p style={{ color: "#9ca3af", fontSize: 14 }}>Loading bill...</p>
-    </div>
-  );
-
-  if (error) return (
-    <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh" }}>
-      <p style={{ color: "#ef4444", fontSize: 14 }}>{error}</p>
-    </div>
-  );
-
-  if (!order) return null;
-
-  const subtotal    = Number(order.subtotal);
-  const cgst        = Number(order.cgst);
-  const sgst        = Number(order.sgst);
-  const grandTotal  = Number(order.grand_total);
-  const discountPct = Number(order.discount_pct);
-  const serviceCharge = Number(settings?.service_charge || 0);
-  const serviceChargeAmt = serviceCharge > 0
-    ? Math.round((subtotal - (subtotal * discountPct / 100)) * serviceCharge / 100 * 100) / 100
-    : 0;
-  const roundOff = grandTotal - (subtotal - (subtotal * discountPct / 100) + cgst + sgst + serviceChargeAmt);
 
   const numberToWords = (num: number): string => {
     const ones = ["","One","Two","Three","Four","Five","Six","Seven",
@@ -72,167 +49,179 @@ function BillContent() {
     return convert(Math.floor(num));
   };
 
-  return (
-    <div style={{ minHeight: "100vh", background: "#f3f4f6", display: "flex", justifyContent: "center", alignItems: "flex-start", padding: "20px 16px" }}>
-      <div style={{ width: "100%", maxWidth: 400, background: "#fff", borderRadius: 12, padding: 24, boxShadow: "0 4px 20px rgba(0,0,0,0.08)" }}>
+  if (loading) return (
+    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f8fafc" }}>
+      <div style={{ textAlign: "center", color: "#94a3b8" }}>
+        <div style={{ fontSize: 40, marginBottom: 8 }}>🧾</div>
+        <div>Loading your bill...</div>
+      </div>
+    </div>
+  );
 
-        {/* Restaurant header */}
-        <div style={{ textAlign: "center", marginBottom: 16 }}>
-          <div style={{ fontWeight: 700, fontSize: 20, color: "#111827" }}>
+  if (error || !order) return (
+    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f8fafc" }}>
+      <div style={{ textAlign: "center" }}>
+        <div style={{ fontSize: 48, marginBottom: 12 }}>❌</div>
+        <div style={{ color: "#ef4444", fontSize: 16, fontWeight: 700 }}>{error || "Bill not found"}</div>
+        <div style={{ color: "#94a3b8", fontSize: 13, marginTop: 8 }}>The bill link may have expired or is invalid</div>
+      </div>
+    </div>
+  );
+
+  const subtotal    = Number(order.subtotal);
+  const cgst        = Number(order.cgst);
+  const sgst        = Number(order.sgst);
+  const grandTotal  = Number(order.grand_total);
+  const discountPct = Number(order.discount_pct);
+  const discountFixed = Number(order.discount_fixed);
+
+  return (
+    <div style={{ minHeight: "100vh", background: "linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)", padding: "20px 16px", display: "flex", justifyContent: "center", alignItems: "flex-start" }}>
+      <div style={{ width: "100%", maxWidth: 440 }}>
+
+        {/* Header card */}
+        <div style={{ background: "linear-gradient(135deg, #f97316, #ea580c)", borderRadius: "20px 20px 0 0", padding: "28px 24px", textAlign: "center", color: "#fff" }}>
+          <div style={{ fontSize: 32, marginBottom: 6 }}>🍽️</div>
+          <div style={{ fontWeight: 900, fontSize: 24, letterSpacing: "-0.5px" }}>
             {settings?.name || "Restaurant"}
           </div>
           {settings?.address && (
-            <div style={{ fontSize: 12, color: "#6b7280", marginTop: 4, lineHeight: 1.5 }}>
+            <div style={{ fontSize: 12, opacity: 0.85, marginTop: 4, lineHeight: 1.5 }}>
               {settings.address}
             </div>
           )}
           {settings?.contact && (
-            <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>
+            <div style={{ fontSize: 12, opacity: 0.85, marginTop: 2 }}>
               📞 {settings.contact}
             </div>
           )}
           {settings?.gstin && (
-            <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>
+            <div style={{ fontSize: 11, opacity: 0.7, marginTop: 2, fontFamily: "monospace" }}>
               GSTIN: {settings.gstin}
             </div>
           )}
         </div>
 
-        <div style={{ borderTop: "1px dashed #d1d5db", margin: "12px 0" }} />
-
         {/* Bill info */}
-        <div style={{ fontSize: 13, color: "#374151", marginBottom: 12 }}>
+        <div style={{ background: "#fff", padding: "20px 24px", borderLeft: "1px solid #f3f4f6", borderRight: "1px solid #f3f4f6" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+            <div>
+              <div style={{ fontSize: 11, color: "#94a3b8", fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>Bill Number</div>
+              <div style={{ fontSize: 22, fontWeight: 900, color: "#f97316" }}>#{order.order_number}</div>
+            </div>
+            <div style={{ textAlign: "right" }}>
+              <div style={{ fontSize: 11, color: "#94a3b8", fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>Date</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "#111827" }}>{new Date(order.created_at).toLocaleDateString('en-IN')}</div>
+              <div style={{ fontSize: 12, color: "#94a3b8" }}>{new Date(order.created_at).toLocaleTimeString('en-IN')}</div>
+            </div>
+          </div>
+
           {order.customer_name && (
-            <div style={{ marginBottom: 4 }}>
-              <span style={{ color: "#9ca3af" }}>Customer: </span>
-              <span style={{ fontWeight: 600 }}>{order.customer_name}</span>
+            <div style={{ background: "#fff7ed", border: "1px solid #fed7aa", borderRadius: 10, padding: "10px 14px", marginBottom: 14 }}>
+              <div style={{ fontSize: 11, color: "#ea580c", fontWeight: 700, marginBottom: 2 }}>CUSTOMER</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: "#111827" }}>{order.customer_name}</div>
+              {order.customer_phone && <div style={{ fontSize: 12, color: "#94a3b8" }}>📞 {order.customer_phone}</div>}
             </div>
           )}
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-            <span><span style={{ color: "#9ca3af" }}>Bill No: </span><span style={{ fontWeight: 600 }}>#{order.order_number}</span></span>
-            <span style={{ color: "#9ca3af" }}>{new Date(order.created_at).toLocaleDateString('en-IN')}</span>
-          </div>
-          <div style={{ display: "flex", justifyContent: "space-between" }}>
-            <span><span style={{ color: "#9ca3af" }}>Type: </span><span style={{ textTransform: "capitalize" }}>{order.order_type}</span></span>
-            <span style={{ color: "#9ca3af" }}>{new Date(order.created_at).toLocaleTimeString('en-IN')}</span>
+
+          <div style={{ display: "flex", gap: 10 }}>
+            <div style={{ flex: 1, background: "#f8fafc", borderRadius: 10, padding: "10px 12px", textAlign: "center" }}>
+              <div style={{ fontSize: 11, color: "#94a3b8", fontWeight: 600 }}>Type</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "#111827", textTransform: "capitalize", marginTop: 2 }}>{order.order_type}</div>
+            </div>
+            <div style={{ flex: 1, background: "#f8fafc", borderRadius: 10, padding: "10px 12px", textAlign: "center" }}>
+              <div style={{ fontSize: 11, color: "#94a3b8", fontWeight: 600 }}>Status</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: order.status === "completed" ? "#16a34a" : "#f97316", textTransform: "capitalize", marginTop: 2 }}>{order.status}</div>
+            </div>
           </div>
         </div>
-
-        <div style={{ borderTop: "1px dashed #d1d5db", margin: "12px 0" }} />
 
         {/* Items */}
-        <div style={{ marginBottom: 12 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "0.3fr 2fr 0.5fr 0.7fr 0.8fr", fontSize: 11, fontWeight: 600, color: "#9ca3af", marginBottom: 8 }}>
-            <span>Sl</span>
-            <span>Item</span>
-            <span style={{ textAlign: "center" }}>Qty</span>
-            <span style={{ textAlign: "right" }}>Rate</span>
-            <span style={{ textAlign: "right" }}>Amt</span>
-          </div>
-          {order.items?.filter((i: any) => i !== null).map((item: any, idx: number) => (
-            <div key={idx} style={{ display: "grid", gridTemplateColumns: "0.3fr 2fr 0.5fr 0.7fr 0.8fr", fontSize: 13, paddingBottom: 8, borderBottom: "1px solid #f9fafb" }}>
-              <span style={{ color: "#9ca3af" }}>{idx + 1}</span>
-              <span style={{ color: "#111827" }}>{item.name}</span>
-              <span style={{ textAlign: "center", color: "#374151" }}>{item.quantity}</span>
-              <span style={{ textAlign: "right", color: "#374151" }}>₹{item.unit_price}</span>
-              <span style={{ textAlign: "right", fontWeight: 600, color: "#111827" }}>₹{item.line_total}</span>
+        <div style={{ background: "#fff", padding: "0 24px", borderLeft: "1px solid #f3f4f6", borderRight: "1px solid #f3f4f6" }}>
+          <div style={{ borderTop: "1px dashed #e5e7eb", paddingTop: 16, paddingBottom: 4 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "2fr 0.5fr 0.7fr 0.8fr", fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 10, paddingBottom: 8, borderBottom: "1px solid #f3f4f6" }}>
+              <span>Item</span>
+              <span style={{ textAlign: "center" }}>Qty</span>
+              <span style={{ textAlign: "right" }}>Rate</span>
+              <span style={{ textAlign: "right" }}>Amt</span>
             </div>
-          ))}
+            {order.items?.filter((i: any) => i !== null).map((item: any, idx: number) => (
+              <div key={idx} style={{ display: "grid", gridTemplateColumns: "2fr 0.5fr 0.7fr 0.8fr", fontSize: 13, paddingBottom: 10, marginBottom: 10, borderBottom: "1px solid #f9fafb" }}>
+                <span style={{ fontWeight: 600, color: "#111827" }}>{item.name}</span>
+                <span style={{ textAlign: "center", color: "#374151" }}>{item.quantity}</span>
+                <span style={{ textAlign: "right", color: "#374151" }}>₹{item.unit_price}</span>
+                <span style={{ textAlign: "right", fontWeight: 700, color: "#111827" }}>₹{item.line_total}</span>
+              </div>
+            ))}
+          </div>
         </div>
-
-        <div style={{ borderTop: "1px dashed #d1d5db", margin: "12px 0" }} />
 
         {/* Totals */}
-        <div style={{ fontSize: 13, display: "flex", flexDirection: "column", gap: 6 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", color: "#6b7280" }}>
-            <span>Net All Total</span><span>₹{subtotal}</span>
-          </div>
-          {discountPct > 0 && (
-            <div style={{ display: "flex", justifyContent: "space-between", color: "#16a34a" }}>
-              <span>Discount ({discountPct}%)</span>
-              <span>- ₹{Math.round(subtotal * discountPct / 100 * 100) / 100}</span>
+        <div style={{ background: "#fff", padding: "16px 24px", borderLeft: "1px solid #f3f4f6", borderRight: "1px solid #f3f4f6" }}>
+          <div style={{ borderTop: "1px dashed #e5e7eb", paddingTop: 14, display: "flex", flexDirection: "column", gap: 8 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "#64748b" }}>
+              <span>Subtotal</span><span>₹{subtotal}</span>
             </div>
-          )}
-          {Number(order.discount_fixed) > 0 && (
-            <div style={{ display: "flex", justifyContent: "space-between", color: "#16a34a" }}>
-              <span>Discount (Fixed)</span>
-              <span>- ₹{order.discount_fixed}</span>
+            {discountPct > 0 && (
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "#16a34a" }}>
+                <span>Discount ({discountPct}%)</span>
+                <span>-₹{Math.round(subtotal * discountPct / 100 * 100) / 100}</span>
+              </div>
+            )}
+            {discountFixed > 0 && (
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "#16a34a" }}>
+                <span>Discount</span><span>-₹{discountFixed}</span>
+              </div>
+            )}
+            {cgst > 0 && (
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "#64748b" }}>
+                <span>CGST @2.5%</span><span>₹{cgst}</span>
+              </div>
+            )}
+            {sgst > 0 && (
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "#64748b" }}>
+                <span>SGST @2.5%</span><span>₹{sgst}</span>
+              </div>
+            )}
+            <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 900, fontSize: 20, color: "#111827", paddingTop: 12, borderTop: "2px solid #f97316", marginTop: 4 }}>
+              <span>Total Amount</span>
+              <span style={{ color: "#f97316" }}>₹{grandTotal}</span>
             </div>
-          )}
-          <div style={{ display: "flex", justifyContent: "space-between", color: "#6b7280" }}>
-            <span>Total</span>
-            <span>₹{Math.round((subtotal - (subtotal * discountPct / 100)) * 100) / 100}</span>
-          </div>
-          {serviceChargeAmt > 0 && (
-            <div style={{ display: "flex", justifyContent: "space-between", color: "#6b7280" }}>
-              <span>Service Charge ({serviceCharge}%)</span>
-              <span>₹{serviceChargeAmt}</span>
-            </div>
-          )}
-          {cgst > 0 && (
-            <div style={{ display: "flex", justifyContent: "space-between", color: "#6b7280" }}>
-              <span>CGST @2.5%</span><span>₹{cgst}</span>
-            </div>
-          )}
-          {sgst > 0 && (
-            <div style={{ display: "flex", justifyContent: "space-between", color: "#6b7280" }}>
-              <span>SGST @2.5%</span><span>₹{sgst}</span>
-            </div>
-          )}
-          <div style={{ display: "flex", justifyContent: "space-between", color: "#6b7280" }}>
-            <span>Round Off</span><span>₹{roundOff.toFixed(2)}</span>
-          </div>
-
-          <div style={{ borderTop: "2px solid #111827", paddingTop: 8, marginTop: 4 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700, fontSize: 18, color: "#111827" }}>
-              <span>Gross Amount</span><span>₹{grandTotal}</span>
+            <div style={{ fontSize: 12, color: "#94a3b8", fontStyle: "italic", textAlign: "right" }}>
+              {numberToWords(grandTotal)} Rupees only
             </div>
           </div>
         </div>
-
-        <div style={{ borderTop: "1px dashed #d1d5db", margin: "12px 0" }} />
-
-        {/* Amount in words */}
-        <div style={{ fontSize: 12, color: "#374151", marginBottom: 8 }}>
-          <span style={{ fontWeight: 600 }}>Amount: </span>
-          {numberToWords(grandTotal)} Rupees only
-        </div>
-
-        <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 12 }}>
-          Total Items: {order.items?.filter((i: any) => i !== null).length || 0}
-        </div>
-
-        <div style={{ borderTop: "1px dashed #d1d5db", margin: "12px 0" }} />
 
         {/* UPI QR */}
         {settings?.upi_id && (
-          <div style={{ textAlign: "center", marginBottom: 12 }}>
-            <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 8 }}>
-              Scan to Pay via UPI app
-            </div>
-            <div style={{ display: "flex", justifyContent: "center" }}>
-              <img
-                src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=upi://pay?pa=${settings.upi_id}&pn=${encodeURIComponent(settings.name)}&am=${grandTotal}`}
-                alt="UPI QR"
-                style={{ width: 150, height: 150 }}
-              />
-            </div>
-            <div style={{ fontSize: 12, color: "#6b7280", marginTop: 4 }}>
-              {settings.upi_id}
+          <div style={{ background: "#fff", padding: "16px 24px", borderLeft: "1px solid #f3f4f6", borderRight: "1px solid #f3f4f6", textAlign: "center" }}>
+            <div style={{ borderTop: "1px dashed #e5e7eb", paddingTop: 16 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "#374151", marginBottom: 10 }}>📱 Scan to Pay via UPI</div>
+              <div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}>
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=upi://pay?pa=${settings.upi_id}&pn=${encodeURIComponent(settings.name || "")}&am=${grandTotal}`}
+                  alt="UPI QR" style={{ width: 150, height: 150, borderRadius: 8 }}
+                />
+              </div>
+              <div style={{ fontSize: 12, color: "#94a3b8" }}>{settings.upi_id}</div>
             </div>
           </div>
         )}
 
         {/* Footer */}
-        <div style={{ textAlign: "center", fontSize: 13, color: "#9ca3af" }}>
-          {settings?.footer_text || "Thank you! Visit again"}
+        <div style={{ background: "linear-gradient(135deg, #f97316, #ea580c)", borderRadius: "0 0 20px 20px", padding: "20px 24px", textAlign: "center", color: "#fff" }}>
+          <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 4 }}>
+            {settings?.footer_text || "Thank you! Visit again 😊"}
+          </div>
+          <div style={{ fontSize: 11, opacity: 0.7, marginTop: 6 }}>
+            This is a digital bill — no paper needed 🌱
+          </div>
         </div>
 
         {/* Print button */}
-        <button
-          onClick={() => window.print()}
-          style={{ width: "100%", marginTop: 16, padding: "12px 0", background: "#f97316", color: "#fff", border: "none", borderRadius: 10, fontWeight: 600, fontSize: 14, cursor: "pointer" }}
-        >
+        <button onClick={() => window.print()}
+          style={{ width: "100%", marginTop: 16, padding: "14px 0", background: "#1e293b", color: "#fff", border: "none", borderRadius: 14, fontWeight: 700, fontSize: 15, cursor: "pointer" }}>
           🖨️ Print This Bill
         </button>
 
@@ -243,7 +232,14 @@ function BillContent() {
 
 export default function BillPage() {
   return (
-    <Suspense fallback={<div style={{ display: "flex", justifyContent: "center", padding: 40 }}>Loading...</div>}>
+    <Suspense fallback={
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ textAlign: "center", color: "#94a3b8" }}>
+          <div style={{ fontSize: 40, marginBottom: 8 }}>🧾</div>
+          Loading...
+        </div>
+      </div>
+    }>
       <BillContent />
     </Suspense>
   );
