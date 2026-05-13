@@ -5,14 +5,37 @@ const { authMiddleware, requireRole } = require('../middleware/auth');
 const router = express.Router();
 
 async function nextOrderNumber(restaurant_id) {
-  const { rows } = await db.query(
-    `SELECT COALESCE(MAX(CAST(order_number AS INTEGER)), 0) + 1 AS next
-     FROM orders
-     WHERE restaurant_id = $1
-     AND order_number ~ '^[0-9]+$'`,
-    [restaurant_id]
-  );
-  return String(rows[0].next);
+  // Use a transaction to lock and get next number atomically
+  const client = await db.connect();
+  try {
+    await client.query('BEGIN');
+    
+    // Lock the restaurant row to prevent concurrent inserts
+    await client.query(
+      'SELECT id FROM restaurants WHERE id = $1 FOR UPDATE',
+      [restaurant_id]
+    );
+    
+    // Get max order number for this restaurant
+    const { rows } = await client.query(
+      `SELECT COALESCE(MAX(
+        CASE WHEN order_number ~ '^[0-9]+$' 
+        THEN CAST(order_number AS INTEGER) 
+        ELSE 0 END
+      ), 0) + 1 AS next
+      FROM orders
+      WHERE restaurant_id = $1`,
+      [restaurant_id]
+    );
+    
+    await client.query('COMMIT');
+    return String(rows[0].next);
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
 }
 
 const roundTotal = (n) => Math.ceil(n);

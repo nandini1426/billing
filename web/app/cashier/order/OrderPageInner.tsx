@@ -58,7 +58,7 @@ export default function OrderPageInner() {
   const [kotSearch,       setKotSearch]       = useState("");
   const [mobileTab,       setMobileTab]       = useState<"menu" | "bill">("menu");
 
-  const [gstEnabled,      setGstEnabled]      = useState(true);
+  const [gstEnabled, setGstEnabled] = useState(false);
   const [discountPct,     setDiscountPct]     = useState(0);
   const [discountFixed,   setDiscountFixed]   = useState(0);
   const [deliveryFee,     setDeliveryFee]     = useState(mode === "delivery" ? 40 : 0);
