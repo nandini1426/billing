@@ -63,7 +63,17 @@ router.post('/', authMiddleware, async (req, res) => {
       afterDiscount + cgstAmt + sgstAmt + parseFloat(delivery_fee)
     );
 
-    const orderNumber = await nextOrderNumber(req.user.restaurant_id);
+    let orderNumber;
+let attempts = 0;
+while (attempts < 5) {
+  orderNumber = await nextOrderNumber(req.user.restaurant_id);
+  const { rows: existing } = await db.query(
+    'SELECT id FROM orders WHERE order_number=$1 AND restaurant_id=$2',
+    [orderNumber, req.user.restaurant_id]
+  );
+  if (existing.length === 0) break;
+  attempts++;
+}
 
     const { rows: [order] } = await client.query(
       `INSERT INTO orders
